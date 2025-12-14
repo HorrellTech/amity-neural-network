@@ -1,1 +1,0 @@
-- Make it so if the AI doesnt understand something, it looks it up on google, abd uses the dirst result sentence to use it in the conversation
