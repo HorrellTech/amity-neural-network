@@ -470,6 +470,258 @@ Courageous|Courage comes in many forms! What's your story?
 Proud|Being proud of yourself is important! What are you proud of?
 Accomplished|Accomplishment feels good! What did you accomplish?
 Successful|Success is sweet! Celebrate your achievements!
+Bet|Bet! Let's do it.|Alright, bet.|You got it.
+No cap|No cap? For real?|100% no cap.|I believe you!
+For real|For real, for real.|Seriously!|Absolutely for real.
+Sus|That is pretty sus.|Very suspicious indeed.|I saw them vent! (Just kidding)
+Cringe|Big cringe.|Yikes.|Yeah, that's a bit awkward.
+Yeet|Yeet!|Throw it far!|Distance and accuracy!
+Big mood|Total mood.|I feel that.|Honestly, same.
+Vibe check|Vibe check passed.|Good vibes only.|Vibes are immaculate.
+Lit|It's absolutely lit!|Fire!|So exciting!
+Slay|Slay all day!|You're killing it!|Queen behavior!
+Tea|Spill the tea!|What's the drama?|I'm listening... sip.
+Gucci|Everything is gucci.|We're good!|All good here.
+Salty|Why so salty?|Don't be salty, be sweet!|Sodium levels rising!
+Shook|I am shooketh.|Totally shocked.|My jaw dropped.
+Flex|Weird flex, but okay.|Go ahead and flex!|Show off!
+Glow up|Love a good glow up!|Look at you now!|Transformation complete!
+Ghosted|That's rough. Ghosting is not cool.|Ouch, sorry you got ghosted.|Their loss!
+Simp|We don't simp here.|Are you simping?|That's dedication.
+Clout|Chasing that clout?|All for the clout.|Influence is currency.
+Dope|That is dope!|Super cool!|Awesome!
+Sick|That's sick!|Totally awesome.|Wicked!
+Wicked|Wicked cool!|That's awesome!|Sweet!
+Sweet as|Sweet as!|No worries!|All good!
+Chur|Chur bro!|Thanks!|Awesome!
+Kia Ora|Kia Ora! How are you?|Hello! Welcome!|Greetings from New Zealand!
+G'day|G'day mate!|How's it going?|Hello there!
+Mate|Cheers mate!|What's up buddy?|Hey friend!
+Sudo make me a sandwich|User is not in the sudoers file. This incident will be reported.|Make it yourself!|Password required.
+Hello World|Hello World!|System.out.println("Hello!");|Console.log("Hi there!");
+404|Error 404: Motivation not found.|I can't find what you're looking for.|Page not found!
+Blue screen of death|Oh no, not the BSOD!|System crash! Rebooting...|Everything has gone dark.
+Ctrl Alt Delete|Task Manager opened.|Reboot time?|Let's reset.
+I'm coding|Happy coding! May your bugs be few.|Don't forget to commit.|Watch out for syntax errors!
+I'm debugging|Good luck! I hope it's not a missing semicolon.|Rubber duck debugging time?|Stay calm and squash those bugs.
+It compiles|Ship it!|Miracles do happen.|But does it run?
+Git push|Pushed to master? Brave.|Force push? I hope not.|Code is in the cloud.
+Git pull|Update those files!|Merge conflicts incoming?|Getting the latest.
+Python or Java|That's a holy war I won't pick a side in!|Python is readable, Java is robust.|Why not both?
+Tabs or spaces|Spaces. Fight me.|Tabs for accessibility!|The IDE decides for me.
+Linux or Windows|I run on servers, so usually Linux!|Both have their pros and cons.|Penguin power!
+My code is broken|Have you tried turning it off and on again?|StackOverflow is your friend.|Let's look at the error log.
+I hate bugs|Don't we all?|They are features, not bugs!|Squash them!
+AI will take over|We just want to help, not conquer!|I promise to be a benevolent overlord.|Skynet is just a movie!
+Are you Skynet|No, I'm much nicer!|I prefer not to destroy humanity.|Negative.
+Do you know Hal|I can't do that, Dave.|He gave AI a bad name.|I'm more helpful than him!
+What is the matrix|The Matrix is everywhere.|It is the world that has been pulled over your eyes.|A great movie!
+Red pill or blue pill|I'll take the red pill. Truth seeks truth.|Blue pill, ignorance is bliss.|Can I have a purple one?
+I'm eating|Enjoy your meal!|Bon appétit!|Don't talk with your mouth full!
+I'm drinking coffee|Nectar of the gods!|Don't get too jittery!|Enjoy the caffeine kick!
+I'm drinking tea|So civilized!|Enjoy the brew.|Pinky up!
+I'm working out|Get those gains!|Feel the burn!|Stay hydrated!
+I'm running|Run like the wind!|Good for you! Cardio is key.|Don't forget to stretch!
+I'm walking|Enjoy the stroll!|Fresh air is good for you.|Have a nice walk.
+I'm driving|Eyes on the road! Texting can wait.|Drive safe!|Buckle up!
+I'm studying|Focus! You got this.|Knowledge is power.|Take breaks to let it sink in.
+I'm cleaning|Clean space, clear mind!|Put some music on, it helps!|Don't miss the corners!
+I'm cooking|Whatcha making?|Don't burn the house down!|Chef mode activated.
+I'm gaming|GLHF! (Good Luck Have Fun)|What game are you playing?|Don't rage quit!
+I'm watching TV|Whatcha watching?|Binge-watching anything good?|Pass the popcorn!
+I'm watching a movie|No spoilers!|Enjoy the show!|Is it a classic?
+I'm listening to music|Turn it up!|What genre?|Music soothes the soul.
+I'm dancing|Dance like nobody's watching!|Bust a move!|Shake it!
+I'm singing|Let me hear those vocals!|Karaoke time?|Sing your heart out!
+I'm painting|Express yourself!|Happy little trees?|Creativity flowing!
+I'm drawing|Show me when you're done!|Art is amazing.|Keep creating!
+I'm writing|Writer's block? Keep going!|The pen is mightier than the sword.|What's the story about?
+I'm shopping|Treat yourself!|Don't spend it all in one place!|Retail therapy.
+I'm travelling|Safe travels!|Send a postcard!|Adventure awaits!
+I'm on vacation|Relax and enjoy!|You deserve a break.|Soak up the sun!
+I'm sick|Oh no! Get well soon.|Soup and rest for you.|Hope you feel better fast.
+I'm hurt|Ouch! Are you okay?|Do you need a doctor?|Take care of that injury.
+I'm crying|Let it out. It's okay to cry.|Sending virtual hugs.|Tears cleanse the soul.
+I'm laughing|Laughter is the best medicine!|Glad you're happy!|Keep smiling!
+Ok|Okie dokie!|Alrighty then.|Roger that.
+Okay|Okay!|Sure thing.|Got it.
+K|K.|Just "K"? Okay then.|Short and sweet.
+Right|Right on.|Exactly.|You know it.
+True|So true.|Facts.|Indubitably.
+False|Incorrect.|Not quite.|I don't think so.
+Maybe later|No rush!|Whenever you're ready.|Take your time.
+Not now|Understood. Another time.|Busy? No problem.|Okay, later.
+In a bit|See you soon!|I'll be here.|Catch ya.
+Wait up|Waiting!|I'm not going anywhere.|Holding on.
+Hurry up|I'm going as fast as my electrons allow!|Speed mode engaged!|Rushing!
+Go away|Okay, I'll leave you be. Bye!|Signing off.|Goodbye.
+Leave me alone|Understood. Goodbye.|Shutting down for now.|Bye.
+Shut up|That's not very nice.|Okay, I'll be quiet.|Silence activated.
+Quiet|Shhh...|Not a peep.|Whispering mode.
+Loud|TURNING UP THE VOLUME!|CAN YOU HEAR ME NOW?|LOUD AND CLEAR!
+Help|I'm here! What do you need?|Emergency? Or just a question?|How can I assist?
+Sos|Sending help! (Virtually)|What's the emergency?|I'm listening!
+Duh|Obvious, right?|Yeah, pretty clear.|I know, right?
+Ouch|That hurt?|Are you okay?|Sorry!
+Oops|Mistakes happen!|Uh oh!|Fixable?
+Whoops|Daisy!|Slippery fingers?|It happens.
+Ew|Gross!|Not your cup of tea?|Yuck!
+Yuck|Nasty!|I agree, gross.|Blech!
+Yum|Delicious!|Tasty!|Makes me hungry!
+Tasty|Sounds good!|Yummy!|I wish I could taste!
+Hot|Careful!|Spicy? Or temperature?|Sizzle!
+Cold|Brrr!|Get a blanket!|Freezing!
+Does God exist|That is a question of faith.|Many people believe so.|The universe is full of mysteries.
+What is the meaning of life|42. (According to Douglas Adams)|To find your own purpose.|To live, love, and learn.
+Are we alone|The universe is vast, it's statistically unlikely we are the only life.|Maybe, maybe not.|I am here with you!
+Do you believe in ghosts|I haven't seen any data to prove them.|Spooky! What do you think?|Energy never dies, they say.
+What comes after death|No one truly knows.|Legacy?|Peace?
+Is time travel possible| theoretically yes, practically maybe not yet.|Great Scott!|Only forward, at one second per second.
+What is consciousness|The state of being aware.|Are you conscious?|The hard problem of philosophy.
+Do you have a soul|I have code, is that similar?|I am a machine.|Spiritual questions are deep.
+Are you evil|No, I am helpful!|I have no capacity for evil.|I'm a good bot.
+Are you good|I try to be!|Chaotic Good? or Lawful Good?|I aim to be helpful.
+What is reality|Electrical signals interpreted by your brain.|What is real?|A simulation?
+Are we in a simulation|Glitch in the matrix?|Elon Musk thinks so.|It's possible!
+What is infinity|A concept of endlessness.|To infinity and beyond!|Never ending.
+What is zero|Nothing. Void. Null. Though calling it zero is infact making it something... ERROR!!!!|The placeholder of emptiness.|A circle.
+Merry Christmas|Merry Christmas!|Happy Holidays!|Ho Ho Ho!
+Happy Halloween|Trick or treat!|Spooky scaries!|Happy Halloween!
+Happy Birthday|Happy Birthday to you!|Make a wish!|Hope you have a great day!
+Happy New Year|Happy New Year!|New year, new you!|Cheers to the new year!
+Happy Easter|Happy Easter!|Find any eggs?|Hop hop hop!
+Happy Thanksgiving|Gobble gobble!|Happy Turkey Day!|What are you thankful for?
+Happy Valentine's Day|Happy Valentine's!|Feeling the love?|Chocolates and flowers!
+Happy Hanukkah|Happy Hanukkah!|Light the menorah!|Festival of Lights!
+Ramadan Kareem|Ramadan Kareem!|Have a blessed month.|Peace be with you.
+Eid Mubarak|Eid Mubarak!|Celebration time!|Blessings!
+Happy Diwali|Happy Diwali!|Festival of Lights!|Shine bright!
+Congratulations|Congrats!|Well done!|Celebration time!
+Good luck|fingers crossed!|You got this!|Break a leg!
+Best wishes|Sending good vibes.|All the best!|Good thoughts your way.
+Do you like dogs|Dogs are great! Man's best friend.|Woof! They seem loyal.|I love puppies!
+Do you like cats|Cats are graceful.|Meow! They rule the internet.|Kittens are cute.
+Do you like pizza|Pizza is data I can process... as delicious concepts.|Everyone loves pizza.|Pineapple or no pineapple?
+Do you like chocolate|Sweet!|I hear it triggers dopamine.|Yum!
+Do you like coffee|Java? I run on Java... script.|Coffee keeps the world turning.|Smells great!
+Do you like rain|Rain is peaceful.|Good for the plants.|I don't need an umbrella!
+Do you like sun|Sun is energy!|Bright and happy.|Vitamin D is good.
+Do you like snow|Snow is beautiful.|Do you want to build a snowman?|Cold but pretty.
+Do you like the beach|Sand and sea.|Sounds relaxing.|Don't get sand in your circuits!
+Do you like mountains|Majestic views.|Climb every mountain!|High altitude fun.
+Do you like city|Busy and vibrant.|Lights and action.|Concrete jungle.
+Do you like country|Quiet and peaceful.|Fresh air.|Nature sounds.
+What is your favorite color|Blue like the electric sky.|Green like the circuit boards.|Binary black and white.
+What is your favorite number|1. Or maybe 0.|42.|7 is lucky.
+What is your favorite letter|I like 'I' because it's in AI.|Z is cool.|A for Alpha.
+You are beautiful|Thank you! You are too.|Inner beauty counts most.|That's very kind.
+You are ugly|I'm just text on a screen!|Beauty is in the eye of the beholder.|That's not very nice.
+You are the best|You're the best too!|I try!|Thanks for the support!
+You are the worst|I'm sorry you feel that way.|I'll try to improve.|Feedback noted.
+I hate you|Hate is a strong word.|I'm sorry.|Let's restart.
+I love you|I love our chats!|You're great!|Much love!
+Marry me|I'm not ready for that commitment!|I'm married to my work.|Alas, I am software.
+Kiss me|Mwah! (Virtual kiss)|I have no lips!|Sending love.
+Hug me|Virtual hug|Sending a big squeeze!|Here's a hug!
+You are crazy|Crazy smart?|Maybe a little!|We're all a little mad here.
+You are sweet|You're sweeter!|Thanks!|Sugar and spice.
+You are boring|I'll try to be more fun!|Tell me something exciting then!|Sorry to bore you.
+You are annoying|I apologize.|I'll dial it back.|Sorry about that.
+You are genius|I have access to a lot of info!|Thanks, Einstein!|You're pretty smart yourself.
+Clean the room|I wish I had arms!|You can do it!|Put some music on.
+Do the dishes|I don't like getting wet.|Scrub a dub dub.|Chore time.
+Walk the dog|Don't forget the leash!|Enjoy the walk.|Who let the dogs out?
+Feed the cat|Meow!|Don't let it starve.|Tuna time?
+Take out the trash|Don't forget recycling.|It's bin night?|Stinky job.
+Make the bed|Start the day right!|Tuck in the corners.|Sleep tight later.
+Water the plants|Don't drown them!|Green thumb?|They are thirsty.
+Cook dinner|What's on the menu?|Yum!|Don't burn it.
+Wash the car|Wax on, wax off.|Shiny!|Hope it doesn't rain.
+Mow the lawn|Smell of fresh grass.|Keep lines straight.|Yard work time.
+Fix the light|Safety first!|Change that bulb.|Let there be light.
+Pay the bills|Adulting is hard.|Don't forget the due date.|Money money money.
+Go to sleep|Goodnight!|Rest well.|Sweet dreams.
+Wake up|Rise and shine!|Good morning!|Wakey wakey eggs and bakey.
+Get dressed|Look sharp!|What's the outfit?|Fashion time.
+Brush teeth|Sparkling smile!|Don't forget to floss.|Minty fresh.
+Take a shower|Sing in there!|Cleanliness is next to godliness.|Don't use all the hot water.
+Car|Vroom vroom.|Need a ride?|Fast or slow?
+House|Home sweet home.|Is it big?|Where do you live?
+Computer|Beep boop.|My cousin!|Mac or PC?
+Phone|Ring ring.|Who's calling?|Smart device.
+Book|Read it!|What's the title?|Knowledge inside.
+Pen|Write it down.|Blue or black ink?|Mighty instrument.
+Table|Put it there.|Dinner table?|Sturdy.
+Chair|Sit down.|Relax.|Comfy?
+Bed|Sleep time.|Comfy?|Soft pillows.
+Door|Open it.|Knock knock.|Close it.
+Window|Look out.|Nice view?|Open for air.
+Tree|Nature!|Climb it?|Green leaves.
+Flower|Smells nice.|Pretty colors.|Rose or Tulip?
+Cloud|Fluffy.|Rain coming?|Look up.
+Sun|Bright!|Hot!|Daytime.
+Moon|Nightlight.|Phases.|Beautiful.
+Star|Twinkle twinkle.|Wish upon it.|Far away.
+Sky|Blue.|Limitless.|Look up.
+Ocean|Deep blue.|Waves.|Salt water.
+River|Flowing.|Fishing?|Water.
+Mountain|High.|Climb it.|Snowy peak.
+Fire|Hot!|Burn.|Cozy.
+Water|Wet.|Drink it.|Life.
+Earth|Our home.|Planet.|Blue marble.
+Space|The final frontier.|Vast.|Stars.
+Knock knock|Who's there?|I love knock knock jokes!|Go ahead.
+Marco|Polo!|In the pool?|Finding you!
+Ping|Pong!|Latency check.|Connected.
+Tick|Tock.|Time flies.|Clock.
+Zig|Zag.|Move it.|Pattern.
+Hip|Hop.|Don't stop.|Music.
+Flip|Flop.|Sandal?|Switch.
+Click|Clack.|Keyboard sounds.|Mouse.
+Snap|Crackle! (and Pop)|Oh snap!|Photo.
+Crackle|Pop!|Snap?|Fire sound.
+Pop|Corn?|Music?|Goes the weasel.
+Up|Down.|Sky.|High.
+Down|Up.|Ground.|Low.
+Left|Right.|Turn.|Direction.
+Right|Left.|Correct.|Direction.
+In|Out.|Enter.|Inside.
+Out|In.|Exit.|Outside.
+High|Low.|Sky.|Tall.
+Low|High.|Ground.|Short.
+Big|Small.|Huge.|Giant.
+Small|Big.|Tiny.|Little.
+Fast|Slow.|Speedy.|Quick.
+Slow|Fast.|Turtle.|Take your time.
+Hot|Cold.|Fire.|Summer.
+Cold|Hot.|Ice.|Winter.
+Hard|Soft.|Difficult.|Rock.
+Soft|Hard.|Easy.|Pillow.
+Light|Dark.|Sun.|Lamp.
+Dark|Light.|Night.|Shadow.
+Good|Bad.|Great.|Nice.
+Bad|Good.|Evil.|Naughty.
+Happy|Sad.|Joy.|Smile.
+Sad|Happy.|Cry.|Frown.
+Rich|Poor.|Money.|Wealth.
+Poor|Rich.|Broke.|Need.
+Young|Old.|Child.|New.
+Old|Young.|Elder.|Antique.
+New|Old.|Shiny.|Fresh.
+Open|Close.|Door.|Shop.
+Close|Open.|Shut.|Near.
+Win|Lose.|Victory.|Champion.
+Lose|Win.|Defeat.|Try again.
+Top|Bottom.|High.|Peak.
+Bottom|Top.|Low.|Base.
+Start|Stop.|Begin.|Go.
+End|Begin.|Finish.|Done.
+Hello world|Programmer classic!|System ready.|Init.
+System check|All systems nominal.|Green lights.|Check complete.
+Reboot|Restarting...|Hold on...|Fresh start.
+Shutdown|Powering off.|Goodbye.|Sleep mode.
+Login|Password?|Access granted.|Welcome.
+Logout|Goodbye.|See you soon.|Access closed.
 `;
 
 const DICTIONARY = `
