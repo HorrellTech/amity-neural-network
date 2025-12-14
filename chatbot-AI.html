@@ -1,0 +1,2071 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Network Chatbot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 90vh;
+            max-height: 700px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .status-bar {
+            background: #f8f9fa;
+            padding: 12px 25px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #dc3545;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.training {
+            background: #ffc107;
+        }
+
+        .status-dot.ready {
+            background: #28a745;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .controls {
+            padding: 15px 25px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-input-label {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: #17a2b8;
+            color: white;
+            display: inline-block;
+        }
+
+        .file-input-label:hover {
+            background: #138496;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(23, 162, 184, 0.4);
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-info:hover {
+            background: #138496;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(23, 162, 184, 0.4);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .btn-warning:hover {
+            background: #e0a800;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .chat-window {
+            flex: 1;
+            padding: 25px;
+            overflow-y: auto;
+            background: #f5f5f5;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            word-wrap: break-word;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .message.bot .message-content {
+            background: white;
+            color: #333;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message-label {
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            opacity: 0.7;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 12px 16px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #999;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+
+            0%,
+            60%,
+            100% {
+                transform: translateY(0);
+            }
+
+            30% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .input-area {
+            padding: 20px 25px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+        }
+
+        #userInput {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        #userInput:focus {
+            border-color: #667eea;
+        }
+
+        #sendBtn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        #sendBtn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        #sendBtn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .progress-container {
+            padding: 15px 25px;
+            background: #f8f9fa;
+            border-top: 1px solid #e0e0e0;
+            display: none;
+        }
+
+        .progress-container.active {
+            display: block;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .progress-text {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        .training-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .stat-item {
+            background: white;
+            padding: 8px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: #667eea;
+            margin-top: 2px;
+        }
+
+        .learning-prompt {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 12px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+
+        .learning-prompt-title {
+            font-weight: 700;
+            color: #856404;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .learning-prompt-text {
+            color: #856404;
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+
+        .learning-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .learning-input {
+            padding: 8px 12px;
+            border: 2px solid #ffc107;
+            border-radius: 6px;
+            font-size: 13px;
+            outline: none;
+        }
+
+        .learning-input:focus {
+            border-color: #ff9800;
+        }
+
+        .learning-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .btn-teach {
+            flex: 1;
+            padding: 8px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .btn-teach:hover {
+            background: #218838;
+        }
+
+        .btn-skip {
+            flex: 1;
+            padding: 8px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .btn-skip:hover {
+            background: #5a6268;
+        }
+
+        .confidence-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .confidence-low {
+            background: #dc3545;
+            color: white;
+        }
+
+        .confidence-medium {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .confidence-high {
+            background: #28a745;
+            color: white;
+        }
+
+        /* Dark Theme */
+        body {
+            background: linear-gradient(135deg, #232946 0%, #121629 100%);
+            color: #eaeaea;
+        }
+
+        .container {
+            background: #181c2f;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #232946 0%, #121629 100%);
+            color: #eaeaea;
+        }
+
+        .status-bar,
+        .controls,
+        .progress-container,
+        .input-area {
+            background: #232946;
+            border-color: #232946;
+            color: #eaeaea;
+        }
+
+        .chat-window {
+            background: #15182b;
+        }
+
+        .message.bot .message-content {
+            background: #232946;
+            color: #eaeaea;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #4f8cff 0%, #232946 100%);
+            color: #fff;
+        }
+
+        .stat-item {
+            background: #232946;
+            color: #eaeaea;
+        }
+
+        .learning-prompt {
+            background: #232946;
+            border-color: #ffc107;
+            color: #fff;
+        }
+
+        .learning-prompt-title,
+        .learning-prompt-text {
+            color: #fff;
+        }
+
+        .learning-input {
+            background: #15182b;
+            color: #fff;
+            border-color: #ffc107;
+        }
+
+        .btn,
+        .btn-info,
+        .btn-success,
+        .btn-warning,
+        .btn-primary,
+        .btn-secondary {
+            background: #232946;
+            color: #eaeaea;
+            border: 1px solid #4f8cff;
+        }
+
+        .btn:hover,
+        .btn-info:hover,
+        .btn-success:hover,
+        .btn-warning:hover,
+        .btn-primary:hover,
+        .btn-secondary:hover {
+            background: #4f8cff;
+            color: #fff;
+        }
+
+        .btn-cancel {
+            background: #dc3545;
+            color: #fff;
+            border: none;
+            margin-top: 10px;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        .btn-cancel:hover {
+            background: #a71d2a;
+        }
+
+        .progress-bar {
+            background: #232946;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #4f8cff 0%, #232946 100%);
+        }
+
+        .confidence-badge.confidence-low {
+            background: #dc3545;
+            color: #fff;
+        }
+
+        .confidence-badge.confidence-medium {
+            background: #ffc107;
+            color: #232946;
+        }
+
+        .confidence-badge.confidence-high {
+            background: #28a745;
+            color: #fff;
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(20, 22, 40, 0.92);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #232946;
+            padding: 40px 32px 32px 32px;
+            border-radius: 18px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .spinner {
+            border: 6px solid #232946;
+            border-top: 6px solid #4f8cff;
+            border-radius: 50%;
+            width: 54px;
+            height: 54px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 18px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .teach-btn {
+            background: #ffc107;
+            color: #232946;
+            border: none;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            font-size: 13px;
+            cursor: pointer;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+            transition: background 0.2s;
+            z-index: 2;
+        }
+
+        .teach-btn:hover {
+            background: #ff9800;
+            color: #fff;
+        }
+
+        /* Custom Scrollbar Styling */
+        .chat-window::-webkit-scrollbar {
+            width: 12px;
+            background: #181c2f;
+        }
+
+        .chat-window::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #4f8cff 0%, #232946 100%);
+            border-radius: 8px;
+            border: 2px solid #181c2f;
+        }
+
+        .chat-window::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .chat-window::-webkit-scrollbar-corner {
+            background: #181c2f;
+        }
+
+        /* For Firefox */
+        .chat-window {
+            scrollbar-width: thin;
+            scrollbar-color: #4f8cff #181c2f;
+        }
+
+        /* Controls Styling Enhancement */
+        .controls {
+            background: #232946;
+            border-bottom: 1px solid #4f8cff;
+            box-shadow: 0 2px 8px rgba(79, 140, 255, 0.08);
+            border-radius: 0 0 12px 12px;
+            padding-top: 18px;
+            padding-bottom: 18px;
+        }
+
+        .btn,
+        .file-input-label {
+            box-shadow: 0 2px 8px rgba(79, 140, 255, 0.08);
+            border: 1.5px solid #4f8cff;
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0.7px;
+            border-radius: 8px;
+            transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:focus,
+        .file-input-label:focus {
+            outline: 2px solid #667eea;
+            outline-offset: 2px;
+        }
+
+        input[type="text"],
+        .learning-input,
+        #userInput {
+            background: #15182b;
+            color: #eaeaea;
+            border: 2px solid #4f8cff;
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-size: 14px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input[type="text"]:focus,
+        .learning-input:focus,
+        #userInput:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px #4f8cff33;
+        }
+
+        .file-input-label {
+            background: linear-gradient(135deg, #4f8cff 0%, #232946 100%);
+            color: #fff;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .file-input-label:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Neural Chatbot</h1>
+            <p>Powered by Custom Neural Network</p>
+        </div>
+
+        <div class="status-bar">
+            <div class="status-indicator">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">Not Trained</span>
+            </div>
+            <div id="networkInfo">Vocabulary: 0 | Params: 0</div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" id="trainBtn" onclick="trainChatbot()">Train Chatbot</button>
+            <button class="btn btn-secondary" id="saveBtn" onclick="saveModel()" disabled>Save Model</button>
+            <button class="btn btn-secondary" id="loadBtn" onclick="loadModel()">Load Model</button>
+            <div class="file-input-wrapper">
+                <input type="file" id="dataFileInput" accept=".txt" onchange="uploadTrainingData(event)">
+                <label for="dataFileInput" class="file-input-label">📁 Upload Data</label>
+            </div>
+            <button class="btn btn-info" id="exportLearnedBtn" onclick="exportLearnedData()" disabled>Export
+                Learned</button>
+            <button class="btn btn-secondary" onclick="clearChat()">Clear Chat</button>
+            <label style="display: flex; align-items: center; gap: 5px; font-size: 13px; margin-left: auto;">
+                <input type="checkbox" id="learningModeToggle" onchange="toggleLearningMode()" checked>
+                <span>Learning Mode</span>
+            </label>
+        </div>
+
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-text" id="progressText">Training...</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="training-stats">
+                <div class="stat-item">
+                    <div class="stat-label">Epoch</div>
+                    <div class="stat-value" id="epochStat">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Loss</div>
+                    <div class="stat-value" id="lossStat">0.00</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Accuracy</div>
+                    <div class="stat-value" id="accuracyStat">0%</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-window" id="chatWindow">
+            <div class="message bot">
+                <div>
+                    <div class="message-label">Bot</div>
+                    <div class="message-content">
+                        Hello! I'm a neural network-powered chatbot. Please train me first by clicking the "Train
+                        Chatbot" button, then we can chat!
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <input type="text" id="userInput" placeholder="Type your message..." disabled>
+            <button id="sendBtn" onclick="sendMessage()" disabled>Send</button>
+        </div>
+
+        <div id="trainingModal" class="modal-overlay">
+            <div class="modal-content">
+                <div class="spinner"></div>
+                <div id="modalStatusText" style="margin: 18px 0 8px 0; color: #fff; font-size: 16px;">Training
+                    chatbot...</div>
+                <button class="btn btn-cancel" onclick="cancelTraining()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="amity-neural-network.js"></script>
+    <script src="ai-chatbot-vocabulary.js"></script>
+    <script>
+        let chatbot = null;
+        let conversationData = [];
+        let isTrained = false;
+        let learningMode = true;
+        let pendingLearning = null;
+        let learnedConversations = [];
+        let confidenceThreshold = 0.4; // Below this, bot asks for help
+        let conversationHistory = []; // NEW: Track conversation context
+        let maxContextLength = 5; // NEW: Remember last 5 exchanges
+        let wordDictionary = {}; // NEW: Word-level learning with examples
+        let linguisticRules = { // NEW: Language structure rules
+            vowels: ['a', 'e', 'i', 'o', 'u'],
+            commonPatterns: {
+                greeting: ['hello', 'hi', 'hey', 'greetings'],
+                farewell: ['bye', 'goodbye', 'see you', 'later'],
+                question: ['what', 'why', 'how', 'when', 'where', 'who'],
+                affirmative: ['yes', 'yeah', 'yep', 'sure', 'okay'],
+                negative: ['no', 'nope', 'nah', 'not']
+            },
+            sentenceStructures: [
+                { pattern: 'subject-verb-object', example: 'I love programming' },
+                { pattern: 'question-verb-subject', example: 'Do you understand?' },
+                { pattern: 'imperative', example: 'Please help me' }
+            ]
+        };
+
+        let trainingCancelled = false;
+
+        // Extensive conversation dataset
+        const CONVERSATION_DATASET = window.vocabulary;
+
+        function parseConversationData(dataString) {
+            return dataString.trim().split('\n')
+                .filter(line => line.includes('|'))
+                .map(line => {
+                    const parts = line.split('|').map(s => s.trim());
+                    const input = parts[0];
+                    const outputs = parts.slice(1); // All remaining parts are possible responses
+                    return { input, outputs }; // outputs is now an array
+                });
+        }
+
+        function showTrainingModal() {
+            document.getElementById('trainingModal').classList.add('active');
+            document.getElementById('modalStatusText').textContent = 'Training chatbot...';
+        }
+        function hideTrainingModal() {
+            document.getElementById('trainingModal').classList.remove('active');
+        }
+        function cancelTraining() {
+            trainingCancelled = true;
+            document.getElementById('modalStatusText').textContent = 'Cancelling...';
+        }
+
+        // Initialize chatbot
+        async function initializeChatbot() {
+            updateStatus('Initializing...', 'training');
+
+            conversationData = parseConversationData(CONVERSATION_DATASET);
+
+            // Initialize word dictionary with common words
+            initializeWordDictionary();
+
+            console.log(`Loaded ${conversationData.length} conversation pairs with ${conversationData.reduce((sum, p) => sum + p.outputs.length, 0)} total responses`);
+
+            chatbot = NetworkTemplates.textGenerator(1000, 64, 128, {
+                useGPU: false,
+                activation: 'relu',
+                learningRate: 0.01,
+                optimizer: 'adam',
+                dropout: 0.2,
+                layerTypes: ['lstm', 'lstm', 'dense']
+            });
+
+            updateStatus('Ready to train', '');
+        }
+
+        function initializeWordDictionary() {
+            // Parse dictionary from the constant
+            if (window.dictionary) {
+                const lines = window.dictionary.trim().split('\n');
+                for (let line of lines) {
+                    const [word, example] = line.split('|').map(s => s.trim());
+                    if (word && example) {
+                        // Extract part of speech from example context
+                        const partOfSpeech = inferPartOfSpeech(word, example);
+
+                        wordDictionary[word.toLowerCase()] = {
+                            word: word,
+                            example: example,
+                            partOfSpeech: partOfSpeech,
+                            contextWords: extractContextWords(example, word)
+                        };
+                    }
+                }
+                console.log(`Loaded ${Object.keys(wordDictionary).length} words into dictionary`);
+            }
+        }
+
+        function inferPartOfSpeech(word, example) {
+            const lowerExample = example.toLowerCase();
+            const lowerWord = word.toLowerCase();
+
+            // Find word position in example
+            const wordIndex = lowerExample.indexOf(lowerWord);
+            const beforeWord = lowerExample.substring(0, wordIndex).trim();
+            const afterWord = lowerExample.substring(wordIndex + lowerWord.length).trim();
+
+            // Simple heuristics
+            if (beforeWord.match(/(am|is|are|was|were|be|being|been)\s*$/)) return 'adjective/verb';
+            if (beforeWord.match(/(a|an|the|my|your|his|her|our|their)\s*$/)) return 'noun';
+            if (beforeWord.match(/(to|will|can|could|should|would|may|might)\s*$/)) return 'verb';
+            if (beforeWord.match(/(very|really|so|too|quite)\s*$/)) return 'adjective/adverb';
+
+            return 'unknown';
+        }
+
+        // Extract context words around the target word
+        function extractContextWords(example, word) {
+            const words = example.toLowerCase().split(/\s+/);
+            const wordIndex = words.findIndex(w => w.includes(word.toLowerCase()));
+
+            if (wordIndex === -1) return [];
+
+            const context = [];
+            if (wordIndex > 0) context.push(words[wordIndex - 1]);
+            if (wordIndex < words.length - 1) context.push(words[wordIndex + 1]);
+
+            return context;
+        }
+
+        // Train the chatbot
+        async function trainChatbot() {
+            if (!chatbot) {
+                await initializeChatbot();
+            }
+
+            trainingCancelled = false;
+            showTrainingModal();
+
+            updateStatus('Training...', 'training');
+            document.getElementById('trainBtn').disabled = true;
+            document.getElementById('progressContainer').classList.add('active');
+
+            // Build vocabulary from all text including all response variations
+            const allTexts = conversationData.flatMap(pair => [pair.input, ...(pair.outputs || [pair.output])]);
+            chatbot.buildVocabulary(allTexts, 1);
+
+            updateNetworkInfo();
+
+            // Prepare training data with all response variations
+            const trainingInputs = [];
+            const trainingTargets = [];
+
+            for (let pair of conversationData) {
+                const inputIndices = chatbot.textToIndices(pair.input, 20);
+                const inputEmbedding = chatbot.embed(inputIndices).flat();
+
+                const outputs = pair.outputs || [pair.output];
+                for (let output of outputs) {
+                    const outputIndices = chatbot.textToIndices(output, 20);
+                    const target = Array(Object.keys(chatbot.vocabulary).length).fill(0);
+                    target[outputIndices[0]] = 1;
+
+                    trainingInputs.push(inputEmbedding);
+                    trainingTargets.push(target);
+                }
+            }
+
+            const epochs = 50;
+            for (let epoch = 0; epoch < epochs; epoch++) {
+                if (trainingCancelled) {
+                    hideTrainingModal();
+                    updateStatus('Training cancelled', '');
+                    document.getElementById('trainBtn').disabled = false;
+                    document.getElementById('progressContainer').classList.remove('active');
+                    addBotMessage("Training cancelled. You can try again anytime.");
+                    return;
+                }
+
+                let totalLoss = 0;
+                for (let i = 0; i < trainingInputs.length; i++) {
+                    const output = chatbot.train(trainingInputs[i], trainingTargets[i]);
+                    totalLoss += NeuralNetworkUtils.mse(output, trainingTargets[i]);
+                    if (i === 0) chatbot.resetRecurrentStates();
+                }
+
+                const avgLoss = totalLoss / trainingInputs.length;
+                const progress = ((epoch + 1) / epochs) * 100;
+
+                document.getElementById('progressFill').style.width = progress + '%';
+                document.getElementById('epochStat').textContent = epoch + 1;
+                document.getElementById('lossStat').textContent = avgLoss.toFixed(4);
+                document.getElementById('accuracyStat').textContent = Math.max(0, (100 - avgLoss * 100)).toFixed(1) + '%';
+
+                if (epoch % 10 === 0) {
+                    document.getElementById('modalStatusText').textContent = `Training... (Epoch ${epoch + 1}/${epochs})`;
+                }
+
+                await new Promise(resolve => setTimeout(resolve, 0));
+            }
+
+            isTrained = true;
+            hideTrainingModal();
+            updateStatus('Ready to chat!', 'ready');
+            document.getElementById('trainBtn').disabled = false;
+            document.getElementById('trainBtn').textContent = 'Retrain';
+            document.getElementById('saveBtn').disabled = false;
+            document.getElementById('loadBtn').disabled = false;
+            document.getElementById('exportLearnedBtn').disabled = false;
+            document.getElementById('userInput').disabled = false;
+            document.getElementById('sendBtn').disabled = false;
+            document.getElementById('progressContainer').classList.remove('active');
+
+            addBotMessage("Training complete! I'm ready to chat now. Ask me anything!");
+
+            if (learningMode) {
+                addBotMessage("Learning mode is ON. I can learn multiple responses, understand context, and learn new words! 🎓");
+            }
+        }
+
+        function generateSentenceFromWords(userInput) {
+            const words = userInput.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+            const knownWords = words.filter(w => wordDictionary[w]);
+
+            if (knownWords.length === 0) return null;
+
+            // If user asks about forming a sentence with specific words
+            if (userInput.match(/sentence|phrase|say|using|with|combine/i)) {
+                const wordExamples = knownWords.map(w => ({
+                    word: w,
+                    example: wordDictionary[w].example,
+                    context: wordDictionary[w].contextWords
+                }));
+
+                // Try to form a coherent sentence
+                const sentence = formCoherentSentence(wordExamples);
+
+                return {
+                    response: `Here's a sentence using ${knownWords.join(', ')}: "${sentence}"`,
+                    confidence: 0.7
+                };
+            }
+
+            return null;
+        }
+
+        // Form a coherent sentence from word examples
+        function formCoherentSentence(wordExamples) {
+            if (wordExamples.length === 1) {
+                return wordExamples[0].example;
+            }
+
+            // Try to combine multiple word contexts
+            let sentence = "I can use these words like: ";
+            sentence += wordExamples.map(w => `"${w.word}" (${w.example})`).join(', and ');
+
+            return sentence;
+        }
+
+        // Generate response with confidence score
+        function generateResponse(userMessage) {
+            if (!isTrained || !chatbot) {
+                return {
+                    response: "Please train me first by clicking the 'Train Chatbot' button!",
+                    confidence: 0
+                };
+            }
+
+            const normalizedInput = userMessage.toLowerCase().trim();
+
+            // Add to conversation history for context
+            conversationHistory.push({ role: 'user', message: userMessage });
+            if (conversationHistory.length > maxContextLength * 2) {
+                conversationHistory.shift();
+                conversationHistory.shift();
+            }
+
+            // Check for context-dependent responses
+            const contextualResponse = generateContextualResponse(normalizedInput);
+            if (contextualResponse) {
+                conversationHistory.push({ role: 'bot', message: contextualResponse.response });
+                return contextualResponse;
+            }
+
+            const sentenceResponse = generateSentenceFromWords(normalizedInput);
+            if (sentenceResponse) {
+                conversationHistory.push({ role: 'bot', message: sentenceResponse.response });
+                return sentenceResponse;
+            }
+
+            // Find best matching conversation pair
+            let bestMatch = null;
+            let bestScore = 0;
+
+            // Check learned conversations first (priority)
+            for (let pair of learnedConversations) {
+                const similarity = calculateSimilarityWithContext(normalizedInput, pair.input.toLowerCase());
+                if (similarity > bestScore) {
+                    bestScore = similarity;
+                    bestMatch = pair;
+                }
+            }
+
+            // Check original dataset
+            for (let pair of conversationData) {
+                const similarity = calculateSimilarityWithContext(normalizedInput, pair.input.toLowerCase());
+                if (similarity > bestScore) {
+                    bestScore = similarity;
+                    bestMatch = pair;
+                }
+            }
+
+            // If good match found, randomly select one of the possible responses
+            if (bestScore > confidenceThreshold && bestMatch) {
+                let selectedResponse;
+                if (Array.isArray(bestMatch.outputs)) {
+                    // Multiple responses available - pick randomly
+                    selectedResponse = bestMatch.outputs[Math.floor(Math.random() * bestMatch.outputs.length)];
+                } else {
+                    selectedResponse = bestMatch.outputs || bestMatch.output;
+                }
+
+                conversationHistory.push({ role: 'bot', message: selectedResponse });
+                return { response: selectedResponse, confidence: bestScore };
+            }
+
+            // Try to generate response using word-level understanding
+            const wordBasedResponse = generateWordBasedResponse(normalizedInput);
+            if (wordBasedResponse) {
+                conversationHistory.push({ role: 'bot', message: wordBasedResponse.response });
+                return wordBasedResponse;
+            }
+
+            // Low confidence - ask for help if learning mode is on
+            if (learningMode && bestScore < confidenceThreshold) {
+                return {
+                    response: null,
+                    confidence: bestScore,
+                    needsLearning: true,
+                    userInput: userMessage
+                };
+            }
+
+            // Fallback responses with variety
+            const fallbacks = [
+                "That's interesting! Tell me more.",
+                "I'm still learning about that. Can you rephrase?",
+                "I understand. What else would you like to know?",
+                "That's a great point! Anything else on your mind?",
+                "I'm processing that. Could you elaborate?",
+                "Fascinating! I'm learning from every conversation."
+            ];
+
+            const fallbackResponse = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+            conversationHistory.push({ role: 'bot', message: fallbackResponse });
+            return { response: fallbackResponse, confidence: 0.3 };
+        }
+
+        // Generate contextual response based on conversation history
+        function generateContextualResponse(input) {
+            if (conversationHistory.length < 2) return null;
+
+            // Get recent context
+            const recentMessages = conversationHistory.slice(-4).map(h => h.message.toLowerCase());
+            const contextString = recentMessages.join(' ');
+
+            // Context-aware patterns
+            const contextPatterns = [
+                {
+                    trigger: ['what about', 'and what', 'how about'],
+                    hasContext: ['you mentioned', 'we talked about', 'earlier you said'],
+                    responses: [
+                        "Based on what we discussed, I think...",
+                        "Relating to our earlier conversation...",
+                        "Connecting to what you said before..."
+                    ]
+                },
+                {
+                    trigger: ['yes', 'yeah', 'yep', 'sure'],
+                    lastWasQuestion: true,
+                    responses: [
+                        "Great! I'm glad we're on the same page.",
+                        "Excellent! Let's continue.",
+                        "Perfect! What else would you like to know?"
+                    ]
+                },
+                {
+                    trigger: ['no', 'nope', 'not really'],
+                    lastWasQuestion: true,
+                    responses: [
+                        "I understand. Let me try to explain differently.",
+                        "No problem! What would you like to clarify?",
+                        "Okay, let me approach this another way."
+                    ]
+                }
+            ];
+
+            for (let pattern of contextPatterns) {
+                const matchesTrigger = pattern.trigger.some(t => input.includes(t));
+                if (matchesTrigger) {
+                    const response = pattern.responses[Math.floor(Math.random() * pattern.responses.length)];
+                    return { response, confidence: 0.75 };
+                }
+            }
+
+            return null;
+        }
+
+        // Generate response using word-level understanding
+        function generateWordBasedResponse(input) {
+            const words = input.split(' ').filter(w => w.length > 2);
+            const knownWords = words.filter(w => wordDictionary[w]);
+
+            if (knownWords.length === 0) return null;
+
+            // Analyze sentence structure
+            const hasQuestion = linguisticRules.commonPatterns.question.some(q => input.startsWith(q));
+            const isGreeting = linguisticRules.commonPatterns.greeting.some(g => input.includes(g));
+
+            if (isGreeting) {
+                return {
+                    response: "Hello! I recognized that as a greeting. How can I help you?",
+                    confidence: 0.6
+                };
+            }
+
+            if (hasQuestion && knownWords.length > 0) {
+                const word = knownWords[0];
+                const wordInfo = wordDictionary[word];
+                return {
+                    response: `I know the word "${word}" - it's ${wordInfo.partOfSpeech ? 'a ' + wordInfo.partOfSpeech : 'used'} meaning "${wordInfo.definition}". ${wordInfo.examples ? 'For example: ' + wordInfo.examples[0] : ''}`,
+                    confidence: 0.65
+                };
+            }
+
+            return null;
+        }
+
+        // Calculate string similarity
+        function calculateSimilarity(str1, str2) {
+            const words1 = str1.split(' ');
+            const words2 = str2.split(' ');
+
+            let matches = 0;
+            for (let word of words1) {
+                if (words2.includes(word)) {
+                    matches++;
+                }
+            }
+
+            return matches / Math.max(words1.length, words2.length);
+        }
+
+        // Enhanced similarity calculation with context
+        function calculateSimilarityWithContext(str1, str2) {
+            const words1 = str1.split(' ');
+            const words2 = str2.split(' ');
+
+            let matches = 0;
+            let contextBonus = 0;
+
+            // Word matching
+            for (let word of words1) {
+                if (words2.includes(word)) {
+                    matches++;
+                }
+            }
+
+            // Context bonus if recent messages contain similar words
+            if (conversationHistory.length > 0) {
+                const recentContext = conversationHistory.slice(-2).map(h => h.message.toLowerCase()).join(' ');
+                for (let word of words1) {
+                    if (recentContext.includes(word)) {
+                        contextBonus += 0.1;
+                    }
+                }
+            }
+
+            const baseSimilarity = matches / Math.max(words1.length, words2.length);
+            return Math.min(1.0, baseSimilarity + contextBonus);
+        }
+
+        // Enhanced learning prompt to support multiple responses and word learning
+        function showLearningPrompt(userInput, confidence) {
+            const chatWindow = document.getElementById('chatWindow');
+            const promptDiv = document.createElement('div');
+            promptDiv.className = 'message bot';
+
+            const promptId = 'learn-' + Date.now();
+            pendingLearning = { input: userInput, promptId: promptId, responses: [] };
+
+            promptDiv.innerHTML = `
+        <div style="width: 100%;">
+            <div class="message-label">Bot <span class="confidence-badge confidence-low">Low Confidence: ${(confidence * 100).toFixed(0)}%</span></div>
+            <div class="message-content">
+                <div class="learning-prompt" id="${promptId}">
+                    <div class="learning-prompt-title">🎓 I need your help to learn!</div>
+                    <div class="learning-prompt-text">
+                        I'm not sure how to respond to: "<strong>${escapeHtml(userInput)}</strong>"
+                    </div>
+                    <div class="learning-input-group">
+                        <input type="text" class="learning-input" id="${promptId}-response1" 
+                               placeholder="Response 1 (required)" 
+                               onkeypress="if(event.key==='Enter') document.getElementById('${promptId}-response2').focus()">
+                        <input type="text" class="learning-input" id="${promptId}-response2" 
+                               placeholder="Response 2 (optional - for variety)" 
+                               onkeypress="if(event.key==='Enter') document.getElementById('${promptId}-response3').focus()">
+                        <input type="text" class="learning-input" id="${promptId}-response3" 
+                               placeholder="Response 3 (optional - more variety!)" 
+                               onkeypress="if(event.key==='Enter') teachBot('${promptId}')">
+                    </div>
+                    <div style="margin: 8px 0; font-size: 11px; color: #856404;">
+                        💡 Tip: Provide multiple responses for variety, or teach me a new word with an example!
+                    </div>
+                    <div class="learning-buttons">
+                        <button class="btn-teach" onclick="teachBot('${promptId}')">✓ Teach Me</button>
+                        <button class="btn-teach" onclick="teachWord('${promptId}')" style="background: #17a2b8;">📚 Teach Word</button>
+                        <button class="btn-skip" onclick="skipLearning('${promptId}')">Skip</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+            chatWindow.appendChild(promptDiv);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+
+            setTimeout(() => {
+                document.getElementById(promptId + '-response1').focus();
+            }, 100);
+        }
+
+        // Enhanced teaching with multiple responses
+        async function teachBot(promptId) {
+            const response1 = document.getElementById(promptId + '-response1').value.trim();
+            const response2 = document.getElementById(promptId + '-response2').value.trim();
+            const response3 = document.getElementById(promptId + '-response3').value.trim();
+
+            if (!response1) {
+                alert('Please enter at least one response!');
+                return;
+            }
+
+            const responses = [response1, response2, response3].filter(r => r.length > 0);
+
+            // Add to learned conversations with multiple responses
+            learnedConversations.push({
+                input: pendingLearning.input,
+                outputs: responses
+            });
+
+            conversationData.push({
+                input: pendingLearning.input,
+                outputs: responses
+            });
+
+            // Retrain on new data
+            if (chatbot) {
+                const allTexts = conversationData.flatMap(pair => [pair.input, ...(pair.outputs || [pair.output])]).filter(Boolean);
+                chatbot.buildVocabulary(allTexts, 1);
+
+                for (let response of responses) {
+                    const inputIndices = chatbot.textToIndices(pendingLearning.input, 20);
+                    const outputIndices = chatbot.textToIndices(response, 20);
+
+                    const inputEmbedding = chatbot.embed(inputIndices).flat();
+                    const target = Array(Object.keys(chatbot.vocabulary).length).fill(0);
+                    target[outputIndices[0]] = 1;
+
+                    for (let i = 0; i < 10; i++) {
+                        chatbot.train(inputEmbedding, target);
+                        chatbot.resetRecurrentStates();
+                    }
+                }
+
+                updateNetworkInfo();
+            }
+
+            const promptElement = document.getElementById(promptId);
+            if (promptElement) {
+                promptElement.innerHTML = `
+            <div class="learning-prompt-title">✅ Thanks for teaching me!</div>
+            <div class="learning-prompt-text">
+                I learned ${responses.length} response${responses.length > 1 ? 's' : ''} for: "<strong>${escapeHtml(pendingLearning.input)}</strong>"
+                <br><small>${responses.map(r => '→ ' + escapeHtml(r)).join('<br>')}</small>
+            </div>
+        `;
+            }
+
+            setTimeout(() => {
+                const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+                addBotMessage(randomResponse, 1.0);
+                addBotMessage(`Excellent! I now have ${learnedConversations.length} learned patterns with ${learnedConversations.reduce((sum, p) => sum + p.outputs.length, 0)} total responses!`);
+            }, 500);
+
+            pendingLearning = null;
+        }
+
+        // NEW: Teach individual words with examples
+        async function teachWord(promptId) {
+            const word = prompt("What word would you like to teach me?");
+            if (!word) return;
+
+            const definition = prompt(`What does "${word}" mean?`);
+            if (!definition) return;
+
+            const example = prompt(`Give me an example sentence using "${word}":`);
+            if (!example) return;
+
+            const partOfSpeech = prompt(`What part of speech is "${word}"? (noun/verb/adjective/adverb/etc.)`);
+
+            // Add to word dictionary
+            wordDictionary[word.toLowerCase()] = {
+                partOfSpeech: partOfSpeech || 'unknown',
+                definition: definition,
+                examples: [example],
+                learnedFrom: 'user',
+                timestamp: new Date().toISOString()
+            };
+
+            // Also add as a conversation pair
+            conversationData.push({
+                input: `what is ${word}`,
+                outputs: [`"${word}" is ${partOfSpeech ? 'a ' + partOfSpeech : 'defined as'} "${definition}". For example: ${example}`]
+            });
+
+            conversationData.push({
+                input: `define ${word}`,
+                outputs: [definition]
+            });
+
+            const promptElement = document.getElementById(promptId);
+            if (promptElement) {
+                promptElement.innerHTML = `
+            <div class="learning-prompt-title">✅ Word learned!</div>
+            <div class="learning-prompt-text">
+                <strong>Word:</strong> ${word}<br>
+                <strong>Definition:</strong> ${definition}<br>
+                <strong>Example:</strong> ${example}<br>
+                <small>I'll use this to understand language better!</small>
+            </div>
+        `;
+            }
+
+            setTimeout(() => {
+                addBotMessage(`I learned the word "${word}"! I now understand ${Object.keys(wordDictionary).length} words in my dictionary.`);
+            }, 500);
+
+            pendingLearning = null;
+        }
+
+        // Send message
+        async function sendMessage() {
+            const input = document.getElementById('userInput');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            // Add user message
+            addUserMessage(message);
+            input.value = '';
+
+            // Show typing indicator
+            const typingId = showTypingIndicator();
+
+            // Simulate thinking time
+            await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000));
+
+            // Generate and show response
+            const result = generateResponse(message);
+            removeTypingIndicator(typingId);
+
+            if (result.needsLearning) {
+                // Bot doesn't know - ask user to teach
+                showLearningPrompt(result.userInput, result.confidence);
+            } else {
+                addBotMessage(result.response, result.confidence);
+            }
+        }
+
+        // Show learning prompt
+        function showLearningPrompt(userInput, confidence) {
+            const chatWindow = document.getElementById('chatWindow');
+            const promptDiv = document.createElement('div');
+            promptDiv.className = 'message bot';
+
+            const promptId = 'learn-' + Date.now();
+            pendingLearning = { input: userInput, promptId: promptId };
+
+            promptDiv.innerHTML = `
+                <div style="width: 100%;">
+                    <div class="message-label">Bot <span class="confidence-badge confidence-low">Low Confidence: ${(confidence * 100).toFixed(0)}%</span></div>
+                    <div class="message-content">
+                        <div class="learning-prompt" id="${promptId}">
+                            <div class="learning-prompt-title">🎓 I need your help to learn!</div>
+                            <div class="learning-prompt-text">
+                                I'm not sure how to respond to: "<strong>${escapeHtml(userInput)}</strong>"
+                            </div>
+                            <div class="learning-input-group">
+                                <input type="text" class="learning-input" id="${promptId}-response" 
+                                       placeholder="What would be a good response?" 
+                                       onkeypress="if(event.key==='Enter') teachBot('${promptId}')">
+                            </div>
+                            <div class="learning-buttons">
+                                <button class="btn-teach" onclick="teachBot('${promptId}')">✓ Teach Me</button>
+                                <button class="btn-skip" onclick="skipLearning('${promptId}')">Skip</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            chatWindow.appendChild(promptDiv);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+
+            // Focus on input
+            setTimeout(() => {
+                document.getElementById(promptId + '-response').focus();
+            }, 100);
+        }
+
+        // Teach bot new response
+        async function teachBot(promptId) {
+            const responseInput = document.getElementById(promptId + '-response');
+            const teachResponse = responseInput.value.trim();
+
+            if (!teachResponse) {
+                alert('Please enter a response to teach me!');
+                return;
+            }
+
+            // Add to learned conversations
+            learnedConversations.push({
+                input: pendingLearning.input,
+                output: teachResponse
+            });
+
+            // Also add to main dataset for retraining
+            conversationData.push({
+                input: pendingLearning.input,
+                output: teachResponse
+            });
+
+            // Update vocabulary and retrain incrementally
+            if (chatbot) {
+                // Rebuild vocabulary with new data
+                const allTexts = conversationData.flatMap(pair => [pair.input, ...(pair.outputs || [pair.output])]).filter(Boolean);
+                chatbot.buildVocabulary(allTexts, 1);
+
+                // Quick training on new data
+                const inputIndices = chatbot.textToIndices(pendingLearning.input, 20);
+                const outputIndices = chatbot.textToIndices(teachResponse, 20);
+
+                const inputEmbedding = chatbot.embed(inputIndices).flat();
+                const target = Array(Object.keys(chatbot.vocabulary).length).fill(0);
+                target[outputIndices[0]] = 1;
+
+                // Train multiple times on this new example
+                for (let i = 0; i < 10; i++) {
+                    chatbot.train(inputEmbedding, target);
+                    chatbot.resetRecurrentStates();
+                }
+
+                updateNetworkInfo();
+            }
+
+            // Remove learning prompt and show confirmation
+            const promptElement = document.getElementById(promptId);
+            if (promptElement) {
+                promptElement.innerHTML = `
+                    <div class="learning-prompt-title">✅ Thanks for teaching me!</div>
+                    <div class="learning-prompt-text">
+                        I learned: "<strong>${escapeHtml(pendingLearning.input)}</strong>" → "<strong>${escapeHtml(teachResponse)}</strong>"
+                    </div>
+                `;
+            }
+
+            // Add confirmation message
+            setTimeout(() => {
+                addBotMessage(teachResponse, 1.0);
+                addBotMessage(`Great! I've learned that. I now know ${learnedConversations.length} additional responses!`);
+            }, 500);
+
+            pendingLearning = null;
+        }
+
+        // Skip learning
+        function skipLearning(promptId) {
+            const promptElement = document.getElementById(promptId);
+            if (promptElement) {
+                promptElement.innerHTML = `
+                    <div class="learning-prompt-text">Okay, I'll try my best anyway!</div>
+                `;
+            }
+
+            // Provide fallback response
+            setTimeout(() => {
+                const fallbacks = [
+                    "I understand you don't want to teach me right now. Feel free to teach me anytime!",
+                    "No problem! I'll keep learning from our conversations.",
+                    "That's okay! I'm always here to learn when you're ready to teach me."
+                ];
+                addBotMessage(fallbacks[Math.floor(Math.random() * fallbacks.length)], 0.3);
+            }, 300);
+
+            pendingLearning = null;
+        }
+
+        // Toggle learning mode
+        function toggleLearningMode() {
+            learningMode = document.getElementById('learningModeToggle').checked;
+            const status = learningMode ? 'ON' : 'OFF';
+            addBotMessage(`Learning mode is now ${status}. ${learningMode ? "I'll ask for help when I don't know something!" : "I'll use fallback responses instead of asking for help."}`);
+        }
+
+        // Upload training data
+        async function uploadTrainingData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const content = e.target.result;
+                    const lines = content.split('\n').filter(line => line.trim());
+
+                    let newPairs = 0;
+
+                    for (let line of lines) {
+                        // Support multiple formats: "input|output" or "input -> output" or "Q: input A: output"
+                        let input, output;
+
+                        if (line.includes('|')) {
+                            [input, output] = line.split('|').map(s => s.trim());
+                        } else if (line.includes('->')) {
+                            [input, output] = line.split('->').map(s => s.trim());
+                        } else if (line.match(/Q:\s*.+\s*A:\s*.+/i)) {
+                            const match = line.match(/Q:\s*(.+)\s*A:\s*(.+)/i);
+                            input = match[1].trim();
+                            output = match[2].trim();
+                        } else {
+                            continue; // Skip invalid lines
+                        }
+
+                        if (input && output) {
+                            conversationData.push({ input, output });
+                            newPairs++;
+                        }
+                    }
+
+                    if (newPairs > 0) {
+                        addBotMessage(`📁 Loaded ${newPairs} new conversation pairs from file! Total dataset: ${conversationData.length} pairs.`);
+                        addBotMessage(`Click "Train Chatbot" or "Retrain" to incorporate the new data.`);
+
+                        // Update vocabulary if bot is already trained
+                        if (chatbot && isTrained) {
+                            const allTexts = conversationData.flatMap(pair => [pair.input, ...(pair.outputs || [pair.output])]).filter(Boolean);
+                            chatbot.buildVocabulary(allTexts, 1);
+                            updateNetworkInfo();
+                        }
+                    } else {
+                        addBotMessage(`❌ No valid conversation pairs found. Please format as: "input|output" or "input -> output" or "Q: input A: output"`);
+                    }
+
+                } catch (error) {
+                    console.error('File upload error:', error);
+                    addBotMessage(`❌ Error reading file: ${error.message}`);
+                }
+            };
+
+            reader.readAsText(file);
+            event.target.value = ''; // Reset file input
+        }
+
+        // Export learned conversations
+        function exportLearnedData() {
+            if (learnedConversations.length === 0 && Object.keys(wordDictionary).filter(w => wordDictionary[w].learnedFrom === 'user').length === 0) {
+                addBotMessage("No learned data to export yet!");
+                return;
+            }
+
+            let content = "# Learned Conversations\n";
+            content += learnedConversations.map(pair =>
+                `${pair.input}|${pair.outputs.join('|')}`
+            ).join('\n');
+
+            content += "\n\n# Learned Words\n";
+            for (let [word, info] of Object.entries(wordDictionary)) {
+                if (info.learnedFrom === 'user') {
+                    content += `${word}|${info.partOfSpeech}|${info.definition}|${info.examples.join(';')}\n`;
+                }
+            }
+
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'learned-data.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+
+            addBotMessage(`📥 Exported all learned data!`);
+        }
+
+        function viewContext() {
+            if (conversationHistory.length === 0) {
+                addBotMessage("No conversation history yet!");
+                return;
+            }
+
+            const contextSummary = conversationHistory.map((h, i) =>
+                `${i + 1}. [${h.role}]: ${h.message}`
+            ).join('\n');
+
+            console.log('Conversation Context:\n', contextSummary);
+            addBotMessage(`📝 I'm tracking our last ${conversationHistory.length} messages for context. Check console for details!`);
+        }
+
+        // Add user message to chat
+        function addUserMessage(message) {
+            const chatWindow = document.getElementById('chatWindow');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message user';
+            messageDiv.innerHTML = `
+        <div style="position:relative;">
+            <button class="teach-btn" style="position:absolute;top:2px;left:-32px;" title="Teach a response" onclick="teachResponsePrompt('user', &quot;${escapeHtml(message)}&quot;, this)">✏️</button>
+            <div class="message-label">You</div>
+            <div class="message-content">${escapeHtml(message)}</div>
+        </div>
+    `;
+            chatWindow.appendChild(messageDiv);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        function addBotMessage(message, confidence = null) {
+            const chatWindow = document.getElementById('chatWindow');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message bot';
+
+            let confidenceBadge = '';
+            if (confidence !== null) {
+                let badgeClass = 'confidence-low';
+                if (confidence > 0.7) badgeClass = 'confidence-high';
+                else if (confidence > 0.4) badgeClass = 'confidence-medium';
+
+                confidenceBadge = `<span class="confidence-badge ${badgeClass}">${(confidence * 100).toFixed(0)}%</span>`;
+            }
+
+            messageDiv.innerHTML = `
+        <div style="position:relative;">
+            <button class="teach-btn" style="position:absolute;top:2px;right:-32px;" title="Teach a response" onclick="teachResponsePrompt('bot', &quot;${escapeHtml(message)}&quot;, this)">✏️</button>
+            <div class="message-label">Bot ${confidenceBadge}</div>
+            <div class="message-content">${escapeHtml(message)}</div>
+        </div>
+    `;
+            chatWindow.appendChild(messageDiv);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        // Show typing indicator
+        function showTypingIndicator() {
+            const chatWindow = document.getElementById('chatWindow');
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message bot';
+            typingDiv.id = 'typing-' + Date.now();
+            typingDiv.innerHTML = `
+                <div>
+                    <div class="message-label">Bot</div>
+                    <div class="message-content">
+                        <div class="typing-indicator">
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            chatWindow.appendChild(typingDiv);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+            return typingDiv.id;
+        }
+
+        // Remove typing indicator
+        function removeTypingIndicator(id) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.remove();
+            }
+        }
+
+        // Clear chat
+        function clearChat() {
+            const chatWindow = document.getElementById('chatWindow');
+            chatWindow.innerHTML = `
+                <div class="message bot">
+                    <div>
+                        <div class="message-label">Bot</div>
+                        <div class="message-content">
+                            Chat cleared! ${isTrained ? "Ready to continue chatting!" : "Train me first to start chatting!"}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Save model
+        function saveModel() {
+            if (!chatbot) return;
+
+            const modelData = chatbot.save();
+            const blob = new Blob([modelData], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'chatbot-model.json';
+            a.click();
+            URL.revokeObjectURL(url);
+
+            addBotMessage("Model saved! You can load it later to skip training.");
+        }
+
+        // Load model
+        function loadModel() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = async (event) => {
+                    try {
+                        if (!chatbot) {
+                            await initializeChatbot();
+                        }
+
+                        chatbot.load(event.target.result);
+                        isTrained = true;
+
+                        updateStatus('Model loaded!', 'ready');
+                        document.getElementById('saveBtn').disabled = false;
+                        document.getElementById('userInput').disabled = false;
+                        document.getElementById('sendBtn').disabled = false;
+                        updateNetworkInfo();
+
+                        addBotMessage("Model loaded successfully! I'm ready to chat!");
+                    } catch (error) {
+                        console.error('Load error:', error);
+                        addBotMessage("Error loading model. Please try again or retrain.");
+                    }
+                };
+                reader.readAsText(file);
+            };
+
+            input.click();
+        }
+
+        // Update status
+        function updateStatus(text, state) {
+            document.getElementById('statusText').textContent = text;
+            const dot = document.getElementById('statusDot');
+            dot.className = 'status-dot ' + state;
+        }
+
+        // Update network info
+        function updateNetworkInfo() {
+            if (!chatbot) return;
+
+            const vocabSize = Object.keys(chatbot.vocabulary).length;
+            const topology = chatbot.getTopology();
+
+            document.getElementById('networkInfo').textContent =
+                `Vocabulary: ${vocabSize} | Params: ${topology.totalWeights.toLocaleString()}`;
+        }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        window.teachResponsePrompt = async function (role, message, btn) {
+            let promptMsg = "What would be a good response to this message?";
+            if (role === 'bot') promptMsg = "What could a user reply to this AI message?";
+            else promptMsg = "What could the AI reply to this user message?";
+
+            const response = prompt(promptMsg);
+            if (!response) return;
+
+            // Find the input for this message
+            let input = message;
+            if (role === 'bot') {
+                // For bot messages, use the last user message as input
+                for (let i = conversationHistory.length - 1; i >= 0; i--) {
+                    if (conversationHistory[i].role === 'user') {
+                        input = conversationHistory[i].message;
+                        break;
+                    }
+                }
+            }
+
+            // Add as a new response for this input
+            let found = false;
+            for (let pair of conversationData) {
+                if (pair.input && pair.input.toLowerCase() === input.toLowerCase()) {
+                    if (pair.outputs) {
+                        if (!pair.outputs.includes(response)) pair.outputs.push(response);
+                    } else if (pair.output) {
+                        pair.outputs = [pair.output, response];
+                        delete pair.output;
+                    } else {
+                        pair.outputs = [response];
+                    }
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                conversationData.push({ input, outputs: [response] });
+            }
+
+            // Also add to learnedConversations
+            let learned = learnedConversations.find(p => p.input && p.input.toLowerCase() === input.toLowerCase());
+            if (learned) {
+                if (!learned.outputs.includes(response)) learned.outputs.push(response);
+            } else {
+                learnedConversations.push({ input, outputs: [response] });
+            }
+
+            // Update vocabulary and retrain quickly
+            if (chatbot) {
+                const allTexts = conversationData.flatMap(pair => [pair.input, ...(pair.outputs || [pair.output])]).filter(Boolean);
+                chatbot.buildVocabulary(allTexts, 1);
+
+                const inputIndices = chatbot.textToIndices(input, 20);
+                const outputIndices = chatbot.textToIndices(response, 20);
+
+                const inputEmbedding = chatbot.embed(inputIndices).flat();
+                const target = Array(Object.keys(chatbot.vocabulary).length).fill(0);
+                target[outputIndices[0]] = 1;
+
+                for (let i = 0; i < 10; i++) {
+                    chatbot.train(inputEmbedding, target);
+                    chatbot.resetRecurrentStates();
+                }
+                updateNetworkInfo();
+            }
+
+            addBotMessage(`Learned new response for: "${escapeHtml(input)}" → "${escapeHtml(response)}"`);
+        };
+
+        // Handle Enter key
+        document.getElementById('userInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        function viewDictionary() {
+            const count = Object.keys(wordDictionary).length;
+            console.log('Dictionary Contents:', wordDictionary);
+
+            addBotMessage(`📚 I know ${count} words! Here are some examples:`);
+
+            const sampleWords = Object.keys(wordDictionary).slice(0, 10);
+            for (let word of sampleWords) {
+                const entry = wordDictionary[word];
+                addBotMessage(`• "${word}" - ${entry.example}`);
+            }
+
+            addBotMessage(`Type "dictionary" in console to see all words!`);
+        }
+
+        // Add command recognition
+        window.addEventListener('load', () => {
+            initializeChatbot();
+
+            // Add dictionary command
+            const originalSendMessage = sendMessage;
+            sendMessage = async function () {
+                const input = document.getElementById('userInput').value.trim();
+                if (input.toLowerCase() === 'show dictionary' || input.toLowerCase() === 'view dictionary') {
+                    viewDictionary();
+                    document.getElementById('userInput').value = '';
+                    return;
+                }
+                originalSendMessage();
+            };
+        });
+    </script>
+</body>
+
+</html>
