@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Network Breakout</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            color: #fff;
+            padding: 20px;
+            display: flex;
+            gap: 20px;
+        }
+
+        #game-container {
+            flex-shrink: 0;
+        }
+
+        #game-canvas {
+            border: 3px solid #0ff;
+            background: #000;
+            display: block;
+        }
+
+        #debug-panel {
+            flex: 1;
+            background: #111;
+            border: 2px solid #333;
+            padding: 15px;
+            overflow-y: auto;
+            max-height: 620px;
+            min-width: 400px;
+        }
+
+        .debug-section {
+            margin-bottom: 20px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 15px;
+        }
+
+        .debug-section:last-child {
+            border-bottom: none;
+        }
+
+        h2 {
+            color: #0ff;
+            font-size: 16px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        h3 {
+            color: #f0f;
+            font-size: 14px;
+            margin: 10px 0 5px 0;
+        }
+
+        .stat-line {
+            font-size: 12px;
+            margin: 3px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .stat-label {
+            color: #888;
+        }
+
+        .stat-value {
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .highlight {
+            color: #0f0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #333;
+            margin: 5px 0;
+            border: 1px solid #555;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #0f0;
+            transition: width 0.3s;
+        }
+
+        .controls {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: #333;
+            color: #fff;
+            border: 2px solid #666;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #555;
+            border-color: #888;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        .chart-container {
+            margin-top: 10px;
+            height: 100px;
+            background: #0a0a0a;
+            border: 1px solid #333;
+            position: relative;
+        }
+
+        canvas.chart {
+            width: 100%;
+            height: 100%;
+        }
+
+        .action-log {
+            font-size: 11px;
+            max-height: 120px;
+            overflow-y: auto;
+            background: #0a0a0a;
+            padding: 8px;
+            border: 1px solid #333;
+            margin-top: 5px;
+        }
+
+        .log-entry {
+            margin: 2px 0;
+            opacity: 0.6;
+        }
+
+        .log-entry.recent {
+            opacity: 1;
+            color: #0f0;
+        }
+
+        .mode-switch {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+
+        .mode-btn {
+            padding: 5px 10px;
+            font-size: 11px;
+        }
+
+        .mode-btn.active {
+            background: #0f0;
+            color: #000;
+            border-color: #0f0;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas" width="600" height="600"></canvas>
+        <div class="controls">
+            <button onclick="resetGame()">Reset AI</button>
+            <button onclick="togglePause()">Pause/Resume</button>
+            <button onclick="saveAI()">Save AI</button>
+            <button onclick="loadAI()">Load AI</button>
+            <label style="color:#fff; font-size:12px; margin-left:10px;">
+                Speed:
+                <input type="number" id="speed-input" min="1" max="20" value="1" style="width:50px;">
+            </label>
+            <label style="color:#fff; font-size:12px;">
+                <input type="checkbox" id="disable-renderer" onchange="rendererEnabled = !this.checked">
+                Disable Renderer
+            </label>
+        </div>
+        <div class="mode-switch">
+            <button class="mode-btn active" onclick="setMode('ai')">AI Mode</button>
+            <button class="mode-btn" onclick="setMode('manual')">Manual Mode</button>
+            <span style="color:#888; font-size:11px; margin-left:10px;">Use arrow keys in manual mode</span>
+        </div>
+    </div>
+
+    <div id="debug-panel">
+        <div class="debug-section">
+            <h2>🎮 Game Status</h2>
+            <div class="stat-line">
+                <span class="stat-label">Generation:</span>
+                <span class="stat-value" id="generation">1</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Score:</span>
+                <span class="stat-value highlight" id="score">0</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Bricks Remaining:</span>
+                <span class="stat-value" id="bricks">0</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Time Alive:</span>
+                <span class="stat-value" id="time-alive">0</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="brick-progress"></div>
+            </div>
+        </div>
+
+        <div class="debug-section">
+            <h2>🤖 Paddle AI</h2>
+            <div class="stat-line">
+                <span class="stat-label">Mode:</span>
+                <span class="stat-value" id="ai-mode">AI Training</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Epsilon (Exploration):</span>
+                <span class="stat-value" id="epsilon">0.10</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Learning Rate:</span>
+                <span class="stat-value" id="lr">0.001</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Experience Buffer:</span>
+                <span class="stat-value" id="exp-buffer">0</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Last Action:</span>
+                <span class="stat-value highlight" id="last-action">-</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Avg Q-Value:</span>
+                <span class="stat-value" id="avg-q">0.00</span>
+            </div>
+            <h3>State Inputs:</h3>
+            <div class="action-log" id="state-log"></div>
+        </div>
+
+        <div class="debug-section">
+            <h2>📊 Training Stats</h2>
+            <div class="stat-line">
+                <span class="stat-label">Best Score:</span>
+                <span class="stat-value" id="best-score">0</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Avg Score (Last 10):</span>
+                <span class="stat-value" id="avg-score">0.0</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Longest Survival:</span>
+                <span class="stat-value" id="longest-survival">0</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Total Bricks Broken:</span>
+                <span class="stat-value" id="total-bricks">0</span>
+            </div>
+            <h3>Score History:</h3>
+            <div class="chart-container">
+                <canvas class="chart" id="score-chart"></canvas>
+            </div>
+        </div>
+
+        <div class="debug-section">
+            <h2>🧠 Network Info</h2>
+            <div class="stat-line">
+                <span class="stat-label">Architecture:</span>
+                <span class="stat-value">10 → 64 → 32 → 3</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Optimizer:</span>
+                <span class="stat-value">Adam</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Memory Usage:</span>
+                <span class="stat-value" id="memory">0.0 MB</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Training Steps:</span>
+                <span class="stat-value" id="train-steps">0</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="amity-neural-network.js"></script>
+    <script>
+        // ============================================================================
+        // Breakout Game with Neural Network AI
+        // ============================================================================
+
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Game constants
+        const PADDLE_WIDTH = 100;
+        const PADDLE_HEIGHT = 15;
+        const BALL_RADIUS = 8;
+        const BRICK_ROWS = 5;
+        const BRICK_COLS = 10;
+        const BRICK_WIDTH = 50;
+        const BRICK_HEIGHT = 20;
+        const BRICK_PADDING = 10;
+        const BRICK_OFFSET_TOP = 60;
+        const BRICK_OFFSET_LEFT = 35;
+
+        // Game state
+        let paddle = {};
+        let ball = {};
+        let bricks = [];
+        let score = 0;
+        let generation = 1;
+        let timeAlive = 0;
+        let isPaused = false;
+        let gameOver = false;
+        let totalBricksEver = 0;
+        let mode = 'ai'; // 'ai' or 'manual'
+
+        // Neural network
+        let paddleBrain;
+
+        // Training stats
+        let scoreHistory = [];
+        let bestScore = 0;
+        let longestSurvival = 0;
+        let lastState = null;
+        let lastAction = null;
+        let actionLog = [];
+        let totalTrainingSteps = 0;
+
+        // Manual control
+        let keys = {};
+
+        // ============================================================================
+        // Initialization
+        // ============================================================================
+
+        function initGame() {
+            // Initialize paddle
+            paddle = {
+                x: canvas.width / 2 - PADDLE_WIDTH / 2,
+                y: canvas.height - 40,
+                width: PADDLE_WIDTH,
+                height: PADDLE_HEIGHT,
+                speed: 8
+            };
+
+            // Initialize ball
+            const angle = (Math.random() * Math.PI / 3) - Math.PI / 6 + Math.PI / 2; // Random angle upward
+            const speed = 5;
+            ball = {
+                x: canvas.width / 2,
+                y: canvas.height - 60,
+                radius: BALL_RADIUS,
+                dx: Math.cos(angle) * speed,
+                dy: Math.sin(angle) * speed,
+                speed: speed
+            };
+
+            // Initialize bricks
+            bricks = [];
+            for (let row = 0; row < BRICK_ROWS; row++) {
+                for (let col = 0; col < BRICK_COLS; col++) {
+                    bricks.push({
+                        x: col * (BRICK_WIDTH + BRICK_PADDING) + BRICK_OFFSET_LEFT,
+                        y: row * (BRICK_HEIGHT + BRICK_PADDING) + BRICK_OFFSET_TOP,
+                        width: BRICK_WIDTH,
+                        height: BRICK_HEIGHT,
+                        alive: true,
+                        color: `hsl(${row * 40}, 80%, 60%)`
+                    });
+                }
+            }
+
+            // Initialize neural network if not exists
+            if (!paddleBrain) {
+                paddleBrain = new NeuralNetwork(
+                    10, // Input: ball x, y, dx, dy, paddle x, paddle center offset, distance to ball, brick density left/center/right
+                    [64, 32],
+                    3, // Output: move left, stay, move right
+                    {
+                        learningRate: 0.001,
+                        activation: 'relu',
+                        outputActivation: 'linear',
+                        optimizer: 'adam',
+                        epsilon: 0.1,
+                        gamma: 0.95,
+                        bufferSize: 10000,
+                        batchSize: 32,
+                        useWorkers: true
+                    }
+                );
+            }
+
+            score = 0;
+            timeAlive = 0;
+            gameOver = false;
+            lastState = null;
+            lastAction = null;
+        }
+
+        // ============================================================================
+        // State Generation
+        // ============================================================================
+
+        function getGameState() {
+            const state = [];
+
+            // 1. Ball position (normalized)
+            state.push(ball.x / canvas.width);
+            state.push(ball.y / canvas.height);
+
+            // 2. Ball velocity (normalized)
+            state.push(ball.dx / 10);
+            state.push(ball.dy / 10);
+
+            // 3. Paddle position (normalized)
+            state.push(paddle.x / canvas.width);
+
+            // 4. Offset from ball to paddle center
+            const paddleCenter = paddle.x + paddle.width / 2;
+            const offset = (ball.x - paddleCenter) / canvas.width;
+            state.push(offset);
+
+            // 5. Distance to ball (normalized)
+            const dist = Math.sqrt(Math.pow(ball.x - paddleCenter, 2) + Math.pow(ball.y - paddle.y, 2));
+            state.push(dist / canvas.height);
+
+            // 6. Brick density in three columns (left, center, right)
+            const leftBricks = bricks.filter(b => b.alive && b.x < canvas.width / 3).length;
+            const centerBricks = bricks.filter(b => b.alive && b.x >= canvas.width / 3 && b.x < 2 * canvas.width / 3).length;
+            const rightBricks = bricks.filter(b => b.alive && b.x >= 2 * canvas.width / 3).length;
+            const totalBricks = bricks.filter(b => b.alive).length;
+            
+            state.push(totalBricks > 0 ? leftBricks / totalBricks : 0);
+            state.push(totalBricks > 0 ? centerBricks / totalBricks : 0);
+            state.push(totalBricks > 0 ? rightBricks / totalBricks : 0);
+
+            return state;
+        }
+
+        // ============================================================================
+        // AI Decision Making
+        // ============================================================================
+
+        function decidePaddleMove() {
+            if (mode === 'manual') {
+                return manualControl();
+            }
+
+            const state = getGameState();
+            
+            // Get action from neural network
+            const qValues = paddleBrain.predict(state);
+            const actionIndex = paddleBrain.selectAction(state, true);
+            
+            // Store experience from last step
+            if (lastState !== null && lastAction !== null) {
+                const reward = calculateReward();
+                paddleBrain.storeExperience(lastState, lastAction, reward, state, false);
+            }
+
+            lastState = state;
+            lastAction = actionIndex;
+
+            // Log action
+            logAction(actionIndex, qValues);
+
+            return actionIndex; // 0 = left, 1 = stay, 2 = right
+        }
+
+        function manualControl() {
+            if (keys['ArrowLeft'] || keys['a']) return 0;
+            if (keys['ArrowRight'] || keys['d']) return 2;
+            return 1;
+        }
+
+        // ============================================================================
+        // Reward Function
+        // ============================================================================
+
+        function calculateReward() {
+            let reward = 0;
+            
+            // Penalty for time (keep game moving)
+            reward -= 0.01;
+            
+            // Reward for paddle-ball alignment (INCREASED)
+            const paddleCenter = paddle.x + paddle.width / 2;
+            const alignment = 1 - Math.abs(ball.x - paddleCenter) / canvas.width;
+            reward += alignment * 2; // Increased from 0.5
+            
+            // Strong reward for good positioning when ball approaches
+            if (ball.dy > 0 && ball.y > canvas.height * 0.6) {
+                const distance = Math.abs(ball.x - paddleCenter);
+                if (distance < paddle.width / 2) {
+                    reward += 5; // Increased from 1
+                } else if (distance < paddle.width) {
+                    reward += 2; // Gradient reward
+                }
+            }
+            
+            return reward;
+        }
+
+        // ============================================================================
+        // Game Update
+        // ============================================================================
+
+        function update() {
+            if (isPaused || gameOver) return;
+
+            timeAlive++;
+
+            // AI decision
+            const action = decidePaddleMove();
+
+            // Move paddle
+            if (action === 0) { // Left
+                paddle.x = Math.max(0, paddle.x - paddle.speed);
+            } else if (action === 2) { // Right
+                paddle.x = Math.min(canvas.width - paddle.width, paddle.x + paddle.speed);
+            }
+
+            // Move ball
+            ball.x += ball.dx;
+            ball.y += ball.dy;
+
+            // Wall collision (sides)
+            if (ball.x + ball.radius > canvas.width || ball.x - ball.radius < 0) {
+                ball.dx = -ball.dx;
+            }
+
+            // Wall collision (top)
+            if (ball.y - ball.radius < 0) {
+                ball.dy = -ball.dy;
+            }
+
+            // Paddle collision
+            if (ball.y + ball.radius >= paddle.y &&
+                ball.y - ball.radius <= paddle.y + paddle.height &&
+                ball.x >= paddle.x &&
+                ball.x <= paddle.x + paddle.width) {
+                
+                // Bounce ball
+                const hitPos = (ball.x - paddle.x) / paddle.width;
+                let angle = (hitPos - 0.5) * (Math.PI / 3); // -60 to +60 degrees
+
+                // Clamp angle to avoid too vertical or too horizontal
+                const minAngle = 0.20; // ~11.5 degrees from vertical
+                const maxAngle = Math.PI / 2 - 0.20; // ~78.5 degrees from vertical
+
+                // Always bounce upward, so angle is relative to -Y
+                if (angle < 0) {
+                    angle = Math.max(angle, -maxAngle);
+                    angle = Math.min(angle, -minAngle);
+                } else {
+                    angle = Math.min(angle, maxAngle);
+                    angle = Math.max(angle, minAngle);
+                }
+
+                const speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
+
+                ball.dx = Math.sin(angle) * speed;
+                ball.dy = -Math.cos(angle) * speed;
+                ball.y = paddle.y - ball.radius; // Prevent sticking
+
+                // Reward for successful paddle hit
+                if (lastState !== null) {
+                    const state = getGameState();
+                    paddleBrain.storeExperience(lastState, lastAction, 10, state, false);
+                }
+            }
+
+            // Brick collision
+            for (let brick of bricks) {
+                if (!brick.alive) continue;
+
+                if (ball.x + ball.radius > brick.x &&
+                    ball.x - ball.radius < brick.x + brick.width &&
+                    ball.y + ball.radius > brick.y &&
+                    ball.y - ball.radius < brick.y + brick.height) {
+                    
+                    ball.dy = -ball.dy;
+                    brick.alive = false;
+                    score += 10;
+                    totalBricksEver++;
+
+                    // Big reward for breaking brick
+                    if (lastState !== null) {
+                        const state = getGameState();
+                        paddleBrain.storeExperience(lastState, lastAction, 50, state, false);
+                    }
+
+                    // Speed up ball slightly
+                    const speedIncrease = 1.01;
+                    ball.dx *= speedIncrease;
+                    ball.dy *= speedIncrease;
+
+                    break;
+                }
+            }
+
+            // Ball fell off bottom
+            if (ball.y - ball.radius > canvas.height) {
+                gameOver = true;
+
+                // Big negative reward for losing ball
+                if (lastState !== null) {
+                    const state = getGameState();
+                    paddleBrain.storeExperience(lastState, lastAction, -100, state, true);
+                }
+
+                endGame();
+                return;
+            }
+
+            // Win condition
+            const aliveBricks = bricks.filter(b => b.alive).length;
+            if (aliveBricks === 0) {
+                gameOver = true;
+
+                // Big reward for clearing all bricks
+                if (lastState !== null) {
+                    const state = getGameState();
+                    paddleBrain.storeExperience(lastState, lastAction, 200, state, true);
+                }
+
+                endGame();
+                return;
+            }
+
+            // Train network periodically
+            if (mode === 'ai' && timeAlive % 1 === 0) {
+                const loss = paddleBrain.trainRL();
+                if (loss !== null) {
+                    totalTrainingSteps++;
+                }
+            }
+        }
+
+        // ============================================================================
+        // Game End
+        // ============================================================================
+
+        function endGame() {
+            scoreHistory.push(score);
+            if (scoreHistory.length > 100) scoreHistory.shift();
+
+            if (score > bestScore) bestScore = score;
+            if (timeAlive > longestSurvival) longestSurvival = timeAlive;
+
+            // Decay exploration
+            if (mode === 'ai') {
+                paddleBrain.decayEpsilon(0.998, 0.01);
+            }
+
+            generation++;
+
+            // Reset for next generation
+            setTimeout(() => {
+                initGame();
+            }, 500);
+        }
+
+        // ============================================================================
+        // Rendering
+        // ============================================================================
+
+        let rendererEnabled = true;
+
+        function draw() {
+            if (!rendererEnabled) return;
+
+            // Clear canvas
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw bricks
+            for (let brick of bricks) {
+                if (brick.alive) {
+                    ctx.fillStyle = brick.color;
+                    ctx.fillRect(brick.x, brick.y, brick.width, brick.height);
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(brick.x, brick.y, brick.width, brick.height);
+                }
+            }
+
+            // Draw paddle
+            ctx.fillStyle = '#0ff';
+            ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
+            ctx.strokeStyle = '#0aa';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(paddle.x, paddle.y, paddle.width, paddle.height);
+
+            // Draw ball
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#ccc';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Draw trajectory line (for debugging)
+            if (ball.dy > 0) {
+                ctx.strokeStyle = 'rgba(255, 255, 0, 0.3)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(ball.x, ball.y);
+                ctx.lineTo(ball.x + ball.dx * 20, ball.y + ball.dy * 20);
+                ctx.stroke();
+            }
+
+            // Draw score
+            ctx.fillStyle = '#0ff';
+            ctx.font = '20px Courier New';
+            ctx.fillText(`Score: ${score}`, 10, 30);
+            ctx.fillText(`Gen: ${generation}`, canvas.width - 100, 30);
+
+            drawScoreChart();
+        }
+
+        // ============================================================================
+        // Debug Panel
+        // ============================================================================
+
+        function updateDebugPanel() {
+            document.getElementById('generation').textContent = generation;
+            document.getElementById('score').textContent = score;
+            
+            const aliveBricks = bricks.filter(b => b.alive).length;
+            document.getElementById('bricks').textContent = aliveBricks;
+            document.getElementById('time-alive').textContent = timeAlive;
+
+            const progress = ((BRICK_ROWS * BRICK_COLS - aliveBricks) / (BRICK_ROWS * BRICK_COLS)) * 100;
+            document.getElementById('brick-progress').style.width = progress + '%';
+
+            // AI stats
+            document.getElementById('ai-mode').textContent = mode === 'ai' ? 'AI Training' : 'Manual Control';
+            document.getElementById('epsilon').textContent = paddleBrain.epsilon.toFixed(3);
+            document.getElementById('lr').textContent = paddleBrain.learningRate.toFixed(4);
+            document.getElementById('exp-buffer').textContent = paddleBrain.getExperienceCount();
+            
+            const actions = ['LEFT', 'STAY', 'RIGHT'];
+            document.getElementById('last-action').textContent = lastAction !== null ? actions[lastAction] : '-';
+
+            // Training stats
+            document.getElementById('best-score').textContent = bestScore;
+            const avgScore = scoreHistory.length > 0
+                ? scoreHistory.slice(-10).reduce((a, b) => a + b, 0) / Math.min(10, scoreHistory.length)
+                : 0;
+            document.getElementById('avg-score').textContent = avgScore.toFixed(1);
+            document.getElementById('longest-survival').textContent = longestSurvival;
+            document.getElementById('total-bricks').textContent = totalBricksEver;
+
+            // Network info
+            const memoryUsage = paddleBrain.getMemoryUsageMB();
+            document.getElementById('memory').textContent = memoryUsage.toFixed(2) + ' MB';
+            document.getElementById('train-steps').textContent = totalTrainingSteps;
+        }
+
+        function logAction(action, qValues) {
+            const actions = ['LEFT', 'STAY', 'RIGHT'];
+            const avgQ = qValues.reduce((a, b) => a + b, 0) / qValues.length;
+            
+            document.getElementById('avg-q').textContent = avgQ.toFixed(2);
+
+            const state = getGameState();
+            const stateStr = `Ball: (${(state[0] * canvas.width).toFixed(0)}, ${(state[1] * canvas.height).toFixed(0)}) | ` +
+                           `Vel: (${state[2].toFixed(2)}, ${state[3].toFixed(2)}) | ` +
+                           `Paddle: ${(state[4] * canvas.width).toFixed(0)} | ` +
+                           `Offset: ${state[5].toFixed(2)}`;
+
+            actionLog.unshift(stateStr);
+            if (actionLog.length > 10) actionLog.pop();
+
+            const logEl = document.getElementById('state-log');
+            logEl.innerHTML = actionLog.map((entry, i) =>
+                `<div class="log-entry ${i === 0 ? 'recent' : ''}">${entry}</div>`
+            ).join('');
+        }
+
+        function drawScoreChart() {
+            const chartCanvas = document.getElementById('score-chart');
+            const chartCtx = chartCanvas.getContext('2d');
+            
+            chartCtx.clearRect(0, 0, chartCanvas.width, chartCanvas.height);
+
+            if (scoreHistory.length < 2) return;
+
+            const maxScore = Math.max(...scoreHistory, 1);
+            const step = chartCanvas.width / (scoreHistory.length - 1);
+
+            chartCtx.strokeStyle = '#0f0';
+            chartCtx.lineWidth = 2;
+            chartCtx.beginPath();
+
+            for (let i = 0; i < scoreHistory.length; i++) {
+                const x = i * step;
+                const y = chartCanvas.height - (scoreHistory[i] / maxScore * chartCanvas.height * 0.9);
+                
+                if (i === 0) {
+                    chartCtx.moveTo(x, y);
+                } else {
+                    chartCtx.lineTo(x, y);
+                }
+            }
+
+            chartCtx.stroke();
+        }
+
+        // ============================================================================
+        // Game Loop
+        // ============================================================================
+
+        let lastTime = 0;
+
+        function gameLoop(timestamp) {
+            if (!lastTime) lastTime = timestamp;
+            
+            const speedInput = document.getElementById('speed-input');
+            const speed = Math.max(1, parseInt(speedInput.value) || 1);
+            const frameInterval = 16; // ~60 FPS
+
+            const delta = timestamp - lastTime;
+            if (delta >= frameInterval) {
+                for (let i = 0; i < speed; i++) {
+                    update();
+                }
+                draw();
+                lastTime = timestamp;
+            }
+
+            updateDebugPanel();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // ============================================================================
+        // Controls
+        // ============================================================================
+
+        function resetGame() {
+            generation = 1;
+            scoreHistory = [];
+            bestScore = 0;
+            longestSurvival = 0;
+            totalBricksEver = 0;
+            totalTrainingSteps = 0;
+
+            // Reset network
+            paddleBrain = new NeuralNetwork(
+                10,
+                [64, 32],
+                3,
+                {
+                    learningRate: 0.001,
+                    activation: 'relu',
+                    outputActivation: 'linear',
+                    optimizer: 'adam',
+                    epsilon: 0.1,
+                    gamma: 0.95,
+                    bufferSize: 10000,
+                    batchSize: 32
+                }
+            );
+
+            initGame();
+        }
+
+        function togglePause() {
+            isPaused = !isPaused;
+        }
+
+        function setMode(newMode) {
+            mode = newMode;
+            
+            // Update button styles
+            const buttons = document.querySelectorAll('.mode-btn');
+            buttons.forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            if (mode === 'ai') {
+                buttons[0].classList.add('active');
+            } else {
+                buttons[1].classList.add('active');
+            }
+        }
+
+        function saveAI() {
+            const saveData = {
+                brain: paddleBrain.save(),
+                generation: generation,
+                bestScore: bestScore,
+                longestSurvival: longestSurvival,
+                totalBricksEver: totalBricksEver,
+                scoreHistory: scoreHistory,
+                totalTrainingSteps: totalTrainingSteps
+            };
+
+            const dataStr = JSON.stringify(saveData);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `breakout-ai-gen${generation}.json`;
+            link.click();
+
+            URL.revokeObjectURL(url);
+            console.log('AI state saved!');
+        }
+
+        function loadAI() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+
+                reader.onload = (event) => {
+                    try {
+                        const saveData = JSON.parse(event.target.result);
+
+                        paddleBrain.load(saveData.brain);
+                        generation = saveData.generation || generation;
+                        bestScore = saveData.bestScore || bestScore;
+                        longestSurvival = saveData.longestSurvival || longestSurvival;
+                        totalBricksEver = saveData.totalBricksEver || totalBricksEver;
+                        scoreHistory = saveData.scoreHistory || scoreHistory;
+                        totalTrainingSteps = saveData.totalTrainingSteps || totalTrainingSteps;
+
+                        console.log(`AI state loaded! Generation ${generation}`);
+                        alert(`AI loaded successfully!\nGeneration: ${generation}\nBest Score: ${bestScore}`);
+
+                    } catch (error) {
+                        console.error('Error loading AI:', error);
+                        alert('Error loading AI file. Please check the file format.');
+                    }
+                };
+
+                reader.readAsText(file);
+            };
+
+            input.click();
+        }
+
+        // Keyboard controls for manual mode
+        window.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+        });
+
+        window.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+
+        // ============================================================================
+        // Start Game
+        // ============================================================================
+
+        initGame();
+        requestAnimationFrame(gameLoop);
+
+        console.log('Neural Breakout initialized!');
+        console.log('- AI learns to keep the ball alive and break bricks');
+        console.log('- Watch the debug panel to see training progress');
+        console.log('- Switch to Manual Mode to play yourself!');
+    </script>
+</body>
+</html>

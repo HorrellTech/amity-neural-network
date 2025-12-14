@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neural Network Demo</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+
+    .container {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    h2 {
+      color: #333;
+      border-bottom: 2px solid #4CAF50;
+      padding-bottom: 10px;
+    }
+
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 5px;
+      font-size: 14px;
+    }
+
+    button:hover {
+      background: #45a049;
+    }
+
+    button.secondary {
+      background: #2196F3;
+    }
+
+    button.secondary:hover {
+      background: #0b7dda;
+    }
+
+    input,
+    textarea {
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin: 5px;
+      font-size: 14px;
+    }
+
+    .output {
+      background: #f9f9f9;
+      padding: 10px;
+      border-radius: 4px;
+      margin-top: 10px;
+      min-height: 30px;
+      font-family: monospace;
+    }
+
+    .game-canvas {
+      border: 2px solid #333;
+      display: block;
+      margin: 10px auto;
+      background: #fff;
+    }
+
+    .draw-canvas {
+      border: 2px solid #333;
+      display: block;
+      margin: 10px auto;
+      background: white;
+      cursor: crosshair;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      margin: 10px 0;
+    }
+
+    .stat {
+      background: #e3f2fd;
+      padding: 10px;
+      border-radius: 4px;
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #666;
+    }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #1976d2;
+    }
+
+    .digit-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      margin: 10px 0;
+    }
+
+    .digit-button {
+      padding: 15px;
+      font-size: 20px;
+      background: #e0e0e0;
+      color: #333;
+    }
+
+    .digit-button.active {
+      background: #4CAF50;
+      color: white;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>🧠 Neural Network Library Demo</h1>
+
+  <!-- XOR Example -->
+  <div class="container">
+    <h2>1. XOR Logic Gate (Classic Example)</h2>
+    <p>Train a neural network to learn the XOR function</p>
+    <button onclick="trainXOR()">Train Network (1000 iterations)</button>
+    <button onclick="testXOR()" class="secondary">Test XOR</button>
+    <button onclick="resetXOR()" class="secondary">Reset</button>
+    <div class="output" id="xorOutput">Click Train to start</div>
+  </div>
+
+  <!-- Pattern Recognition -->
+  <div class="container">
+    <h2>2. Pattern Recognition</h2>
+    <p>Enter a pattern (0s and 1s) and teach the network to recognize it</p>
+    <input type="text" id="patternInput" placeholder="e.g., 1010" style="width: 200px;">
+    <input type="text" id="patternName" placeholder="Pattern name" style="width: 150px;">
+    <button onclick="learnPattern()">Learn Pattern</button>
+    <button onclick="recognizePattern()" class="secondary">Recognize</button>
+    <button onclick="resetPattern()" class="secondary">Reset</button>
+    <div class="output" id="patternOutput">No patterns learned yet</div>
+  </div>
+
+  <!-- Image Recognition -->
+  <div class="container">
+    <h2>3. Image Recognition - Draw Digits (0-9)</h2>
+    <p>Draw a digit in the canvas, then teach the AI to recognize it. Train multiple examples of each digit for better
+      accuracy!</p>
+    <canvas id="drawCanvas" class="draw-canvas" width="280" height="280"></canvas>
+    <div style="text-align: center;">
+      <button onclick="clearCanvas()">Clear Canvas</button>
+      <label>This is a: </label>
+      <input type="number" id="digitLabel" min="0" max="9" value="0" style="width: 60px;">
+      <button onclick="trainDigit()">Train This Digit</button>
+      <button onclick="recognizeDigit()" class="secondary">Recognize</button>
+      <button onclick="resetDigits()" class="secondary">Reset AI</button>
+    </div>
+    <div class="output" id="digitOutput">Draw a digit and train the network</div>
+    <div class="digit-grid" id="digitGrid"></div>
+  </div>
+
+  <!-- Simple Game AI -->
+  <div class="container">
+    <h2>4. Game AI - Collect Coins & Avoid Obstacles</h2>
+    <p>AI learns to collect green coins while avoiding red obstacles. Better reward system for smarter learning!</p>
+    <canvas id="gameCanvas" class="game-canvas" width="400" height="300"></canvas>
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-label">Score</div>
+        <div class="stat-value" id="score">0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Training Steps</div>
+        <div class="stat-value" id="steps">0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Best Run</div>
+        <div class="stat-value" id="bestRun">0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Avg Reward</div>
+        <div class="stat-value" id="avgReward">0</div>
+      </div>
+    </div>
+    <button onclick="startGame()">Start AI Training</button>
+    <button onclick="stopGame()" class="secondary">Stop</button>
+    <button onclick="resetGame()" class="secondary">Reset AI</button>
+    <button onclick="saveGameAI()">Save AI</button>
+    <button onclick="loadGameAI()" class="secondary">Load AI</button>
+  </div>
+
+  <!-- Pac-Man AI -->
+  <div class="container">
+    <h2>5. Pac-Man AI - Competing Neural Networks</h2>
+    <p>Yellow Pac-Man learns to collect pellets while avoiding ghosts. Ghosts learn to hunt Pac-Man. Watch them both
+      improve!</p>
+    <canvas id="pacmanCanvas" class="game-canvas" width="400" height="400"></canvas>
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-label">Pellets</div>
+        <div class="stat-value" id="pacmanScore">0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Training Steps</div>
+        <div class="stat-value" id="pacmanSteps">0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Pac-Man Wins</div>
+        <div class="stat-value" id="pacmanWins">0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Ghost Wins</div>
+        <div class="stat-value" id="ghostWins">0</div>
+      </div>
+    </div>
+    <button onclick="startPacman()">Start Training</button>
+    <button onclick="stopPacman()" class="secondary">Stop</button>
+    <button onclick="resetPacman()" class="secondary">Reset AIs</button>
+    <button onclick="savePacmanAI()">Save AIs</button>
+    <button onclick="loadPacmanAI()" class="secondary">Load AIs</button>
+  </div>
+
+  <!-- Sentiment Analysis -->
+  <div class="container">
+    <h2>6. Simple Sentiment Analysis</h2>
+    <p>Train the network to recognize positive/negative text</p>
+    <textarea id="sentimentText" rows="3" style="width: 90%;" placeholder="Enter text to analyze..."></textarea><br>
+    <button onclick="trainSentiment()">Train on Examples</button>
+    <button onclick="analyzeSentiment()" class="secondary">Analyze Sentiment</button>
+    <button onclick="resetSentiment()" class="secondary">Reset</button>
+    <div class="output" id="sentimentOutput">Click Train to start</div>
+  </div>
+
+  <!-- Save/Load All -->
+  <div class="container">
+    <h2>7. Save/Load All Networks</h2>
+    <button onclick="saveAll()">Save All Networks</button>
+    <button onclick="loadAll()" class="secondary">Load All Networks</button>
+    <button onclick="clearMemory()">Clear All Memory</button>
+    <div class="output" id="saveOutput">Use these buttons to persist your trained networks</div>
+  </div>
+
+  <script>
+    // Neural Network Library
+    class NeuralNetwork {
+      constructor(inputSize, hiddenSizes, outputSize) {
+        this.layers = [];
+        this.memory = [];
+        this.learningRate = 0.1;
+
+        const sizes = [inputSize, ...hiddenSizes, outputSize];
+        for (let i = 0; i < sizes.length - 1; i++) {
+          this.layers.push({
+            weights: this.randomMatrix(sizes[i + 1], sizes[i]),
+            biases: this.randomArray(sizes[i + 1]),
+            activations: [],
+            inputs: []
+          });
+        }
+      }
+
+      randomMatrix(rows, cols) {
+        return Array(rows).fill(0).map(() =>
+          Array(cols).fill(0).map(() => Math.random() * 2 - 1)
+        );
+      }
+
+      randomArray(size) {
+        return Array(size).fill(0).map(() => Math.random() * 2 - 1);
+      }
+
+      sigmoid(x) {
+        return 1 / (1 + Math.exp(-Math.max(-500, Math.min(500, x))));
+      }
+
+      sigmoidDerivative(x) {
+        return x * (1 - x);
+      }
+
+      predict(inputs) {
+        let current = inputs;
+
+        for (let layer of this.layers) {
+          layer.inputs = current;
+          const output = [];
+
+          for (let i = 0; i < layer.weights.length; i++) {
+            let sum = layer.biases[i];
+            for (let j = 0; j < current.length; j++) {
+              sum += current[j] * layer.weights[i][j];
+            }
+            output.push(this.sigmoid(sum));
+          }
+
+          layer.activations = output;
+          current = output;
+        }
+
+        return current;
+      }
+
+      train(inputs, targets) {
+        const outputs = this.predict(inputs);
+        let errors = targets.map((t, i) => t - outputs[i]);
+
+        for (let i = this.layers.length - 1; i >= 0; i--) {
+          const layer = this.layers[i];
+          const gradients = layer.activations.map((a, j) =>
+            errors[j] * this.sigmoidDerivative(a) * this.learningRate
+          );
+
+          for (let j = 0; j < layer.weights.length; j++) {
+            for (let k = 0; k < layer.weights[j].length; k++) {
+              layer.weights[j][k] += gradients[j] * layer.inputs[k];
+            }
+            layer.biases[j] += gradients[j];
+          }
+
+          if (i > 0) {
+            const newErrors = Array(layer.inputs.length).fill(0);
+            for (let j = 0; j < layer.weights.length; j++) {
+              for (let k = 0; k < layer.weights[j].length; k++) {
+                newErrors[k] += layer.weights[j][k] * errors[j];
+              }
+            }
+            errors = newErrors;
+          }
+        }
+
+        return outputs;
+      }
+
+      addMemory(state) {
+        this.memory.push(state);
+        if (this.memory.length > 1000) this.memory.shift();
+      }
+
+      clearMemory() {
+        this.memory = [];
+      }
+
+      save() {
+        return JSON.stringify({
+          layers: this.layers.map(l => ({ weights: l.weights, biases: l.biases })),
+          memory: this.memory,
+          learningRate: this.learningRate
+        });
+      }
+
+      load(data) {
+        const obj = JSON.parse(data);
+        obj.layers.forEach((saved, i) => {
+          this.layers[i].weights = saved.weights;
+          this.layers[i].biases = saved.biases;
+        });
+        this.memory = obj.memory || [];
+        this.learningRate = obj.learningRate || 0.1;
+      }
+
+      setLearningRate(rate) {
+        this.learningRate = rate;
+      }
+    }
+
+    // Initialize networks
+    let xorNet = new NeuralNetwork(2, [4], 1);
+    let patternNet = new NeuralNetwork(8, [6], 1);
+    let digitNet = new NeuralNetwork(196, [64, 32], 10);
+    let gameNet = new NeuralNetwork(8, [16, 12], 4);
+    let pacmanNet = new NeuralNetwork(10, [20, 16], 4); // Pac-Man AI
+    let ghostNet = new NeuralNetwork(6, [12, 8], 4); // Ghost AI
+    let sentimentNet = new NeuralNetwork(20, [12], 1);
+
+    // 1. XOR Example
+    function trainXOR() {
+      const trainingData = [
+        { input: [0, 0], output: [0] },
+        { input: [0, 1], output: [1] },
+        { input: [1, 0], output: [1] },
+        { input: [1, 1], output: [0] }
+      ];
+
+      for (let i = 0; i < 1000; i++) {
+        trainingData.forEach(data => {
+          xorNet.train(data.input, data.output);
+        });
+      }
+
+      document.getElementById('xorOutput').innerHTML = 'Training complete! Network learned XOR function.';
+    }
+
+    function testXOR() {
+      const tests = [[0, 0], [0, 1], [1, 0], [1, 1]];
+      let output = 'XOR Results:<br>';
+      tests.forEach(test => {
+        const result = xorNet.predict(test);
+        output += `${test[0]} XOR ${test[1]} = ${result[0].toFixed(3)} (expected: ${test[0] !== test[1] ? 1 : 0})<br>`;
+      });
+      document.getElementById('xorOutput').innerHTML = output;
+    }
+
+    function resetXOR() {
+      xorNet = new NeuralNetwork(2, [4], 1);
+      document.getElementById('xorOutput').innerHTML = 'Network reset';
+    }
+
+    // 2. Pattern Recognition
+    const learnedPatterns = [];
+
+    function learnPattern() {
+      const pattern = document.getElementById('patternInput').value;
+      const name = document.getElementById('patternName').value;
+
+      if (pattern.length === 0 || name.length === 0) {
+        document.getElementById('patternOutput').innerHTML = 'Please enter both pattern and name';
+        return;
+      }
+
+      const input = pattern.padEnd(8, '0').slice(0, 8).split('').map(x => parseInt(x));
+      learnedPatterns.push({ name, input });
+
+      for (let i = 0; i < 500; i++) {
+        learnedPatterns.forEach((p, idx) => {
+          patternNet.train(p.input, [idx === learnedPatterns.length - 1 ? 1 : 0]);
+        });
+      }
+
+      document.getElementById('patternOutput').innerHTML =
+        `Learned pattern "${name}": ${pattern}<br>Total patterns: ${learnedPatterns.length}`;
+    }
+
+    function recognizePattern() {
+      const pattern = document.getElementById('patternInput').value;
+      const input = pattern.padEnd(8, '0').slice(0, 8).split('').map(x => parseInt(x));
+
+      let bestMatch = -1;
+      let bestScore = -1;
+
+      learnedPatterns.forEach((p, idx) => {
+        patternNet.train(p.input, [1]);
+        const score = patternNet.predict(input)[0];
+        if (score > bestScore) {
+          bestScore = score;
+          bestMatch = idx;
+        }
+      });
+
+      if (bestMatch >= 0) {
+        document.getElementById('patternOutput').innerHTML =
+          `Pattern recognized as: "${learnedPatterns[bestMatch].name}" (confidence: ${(bestScore * 100).toFixed(1)}%)`;
+      } else {
+        document.getElementById('patternOutput').innerHTML = 'No matching pattern found';
+      }
+    }
+
+    function resetPattern() {
+      patternNet = new NeuralNetwork(8, [6], 1);
+      learnedPatterns.length = 0;
+      document.getElementById('patternOutput').innerHTML = 'Patterns reset';
+    }
+
+    // 3. Image Recognition
+    const drawCanvas = document.getElementById('drawCanvas');
+    const drawCtx = drawCanvas.getContext('2d');
+    let isDrawing = false;
+    const digitTrainingData = Array(10).fill(0).map(() => []);
+
+    function initDigitGrid() {
+      const grid = document.getElementById('digitGrid');
+      for (let i = 0; i < 10; i++) {
+        const btn = document.createElement('button');
+        btn.className = 'digit-button';
+        btn.textContent = `${i}: 0 samples`;
+        btn.id = `digit-btn-${i}`;
+        grid.appendChild(btn);
+      }
+    }
+    initDigitGrid();
+
+    drawCanvas.addEventListener('mousedown', (e) => {
+      isDrawing = true;
+      const rect = drawCanvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      drawCtx.beginPath();
+      drawCtx.moveTo(x, y);
+    });
+
+    drawCanvas.addEventListener('mousemove', (e) => {
+      if (!isDrawing) return;
+      const rect = drawCanvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      drawCtx.lineTo(x, y);
+      drawCtx.strokeStyle = '#000';
+      drawCtx.lineWidth = 20;
+      drawCtx.lineCap = 'round';
+      drawCtx.stroke();
+    });
+
+    drawCanvas.addEventListener('mouseup', () => {
+      isDrawing = false;
+    });
+
+    drawCanvas.addEventListener('mouseleave', () => {
+      isDrawing = false;
+    });
+
+    function clearCanvas() {
+      drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+    }
+
+    function getImageData() {
+      const imageData = drawCtx.getImageData(0, 0, drawCanvas.width, drawCanvas.height);
+      const scaled = [];
+
+      for (let y = 0; y < 14; y++) {
+        for (let x = 0; x < 14; x++) {
+          let sum = 0;
+          const sx = Math.floor(x * drawCanvas.width / 14);
+          const sy = Math.floor(y * drawCanvas.height / 14);
+          const sw = Math.ceil(drawCanvas.width / 14);
+          const sh = Math.ceil(drawCanvas.height / 14);
+
+          for (let dy = 0; dy < sh; dy++) {
+            for (let dx = 0; dx < sw; dx++) {
+              const px = sx + dx;
+              const py = sy + dy;
+              if (px < drawCanvas.width && py < drawCanvas.height) {
+                const i = (py * drawCanvas.width + px) * 4;
+                sum += (255 - imageData.data[i]) / 255;
+              }
+            }
+          }
+          scaled.push(sum / (sw * sh));
+        }
+      }
+
+      return scaled;
+    }
+
+    function trainDigit() {
+      const digit = parseInt(document.getElementById('digitLabel').value);
+      const imageData = getImageData();
+
+      digitTrainingData[digit].push(imageData);
+
+      // Train on this specific example
+      for (let i = 0; i < 100; i++) {
+        const target = Array(10).fill(0);
+        target[digit] = 1;
+        digitNet.train(imageData, target);
+      }
+
+      // Retrain on ALL previous examples to prevent forgetting
+      for (let d = 0; d < 10; d++) {
+        digitTrainingData[d].forEach(sample => {
+          for (let i = 0; i < 20; i++) {
+            const target = Array(10).fill(0);
+            target[d] = 1;
+            digitNet.train(sample, target);
+          }
+        });
+      }
+
+      const btn = document.getElementById(`digit-btn-${digit}`);
+      btn.textContent = `${digit}: ${digitTrainingData[digit].length} samples`;
+      btn.className = 'digit-button active';
+
+      document.getElementById('digitOutput').innerHTML =
+        `Trained digit ${digit}! (${digitTrainingData[digit].length} examples total)<br>Draw more examples of different digits for better accuracy.`;
+
+      clearCanvas();
+    }
+
+    function recognizeDigit() {
+      const imageData = getImageData();
+
+      // Check if canvas is empty
+      const isEmpty = imageData.every(val => val < 0.01);
+      if (isEmpty) {
+        document.getElementById('digitOutput').innerHTML = 'Canvas is empty! Draw a digit first.';
+        return;
+      }
+
+      const output = digitNet.predict(imageData);
+
+      const maxIdx = output.indexOf(Math.max(...output));
+      const confidence = output[maxIdx];
+
+      let resultHTML = `<strong>Recognized: ${maxIdx}</strong> (${(confidence * 100).toFixed(1)}% confidence)<br><br>`;
+      resultHTML += 'All predictions:<br>';
+      output.forEach((prob, i) => {
+        const bar = '█'.repeat(Math.floor(prob * 20));
+        resultHTML += `${i}: ${bar} ${(prob * 100).toFixed(1)}%<br>`;
+      });
+
+      document.getElementById('digitOutput').innerHTML = resultHTML;
+    }
+
+    function resetDigits() {
+      digitNet = new NeuralNetwork(196, [64, 32], 10);
+      digitTrainingData.forEach(arr => arr.length = 0);
+      for (let i = 0; i < 10; i++) {
+        const btn = document.getElementById(`digit-btn-${i}`);
+        btn.textContent = `${i}: 0 samples`;
+        btn.className = 'digit-button';
+      }
+      document.getElementById('digitOutput').innerHTML = 'AI reset - train new digits';
+      clearCanvas();
+    }
+
+    // 4. Game AI
+    let gameRunning = false;
+    let gameInterval;
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const player = { x: 200, y: 150, size: 12 };
+    const obstacles = [];
+    const coins = [];
+    let gameScore = 0;
+    let trainingSteps = 0;
+    let bestRun = 0;
+    let currentRun = 0;
+    let rewardHistory = [];
+    let epsilon = 0.3;
+
+    function initGame() {
+      obstacles.length = 0;
+      coins.length = 0;
+
+      for (let i = 0; i < 3; i++) {
+        obstacles.push({
+          x: Math.random() * 350 + 25,
+          y: Math.random() * 250 + 25,
+          size: 15,
+          vx: (Math.random() - 0.5) * 1.5,
+          vy: (Math.random() - 0.5) * 1.5
+        });
+      }
+
+      for (let i = 0; i < 2; i++) {
+        spawnCoin();
+      }
+    }
+
+    function spawnCoin() {
+      coins.push({
+        x: Math.random() * 360 + 20,
+        y: Math.random() * 260 + 20,
+        size: 8
+      });
+    }
+
+    function startGame() {
+      if (gameRunning) return;
+      gameRunning = true;
+      initGame();
+      gameScore = 0;
+      currentRun = 0;
+
+      gameInterval = setInterval(() => {
+        updateGame();
+        drawGame();
+      }, 50);
+    }
+
+    function stopGame() {
+      gameRunning = false;
+      clearInterval(gameInterval);
+    }
+
+    function updateGame() {
+      let nearestObs = obstacles[0];
+      let minObsDist = Infinity;
+      obstacles.forEach(obs => {
+        const dist = Math.hypot(obs.x - player.x, obs.y - player.y);
+        if (dist < minObsDist) {
+          minObsDist = dist;
+          nearestObs = obs;
+        }
+      });
+
+      let nearestCoin = coins[0] || { x: player.x, y: player.y };
+      let minCoinDist = Infinity;
+      coins.forEach(coin => {
+        const dist = Math.hypot(coin.x - player.x, coin.y - player.y);
+        if (dist < minCoinDist) {
+          minCoinDist = dist;
+          nearestCoin = coin;
+        }
+      });
+
+      const inputs = [
+        (nearestObs.x - player.x) / canvas.width,
+        (nearestObs.y - player.y) / canvas.height,
+        nearestObs.vx / 2,
+        nearestObs.vy / 2,
+        (nearestCoin.x - player.x) / canvas.width,
+        (nearestCoin.y - player.y) / canvas.height,
+        minObsDist / 400,
+        minCoinDist / 400
+      ];
+
+      let action;
+      if (Math.random() < epsilon) {
+        action = Math.floor(Math.random() * 4);
+      } else {
+        const output = gameNet.predict(inputs);
+        action = output.indexOf(Math.max(...output));
+      }
+
+      const speed = 5;
+      let newX = player.x;
+      let newY = player.y;
+
+      if (action === 0) newY -= speed;
+      if (action === 1) newY += speed;
+      if (action === 2) newX -= speed;
+      if (action === 3) newX += speed;
+
+      newX = Math.max(player.size, Math.min(canvas.width - player.size, newX));
+      newY = Math.max(player.size, Math.min(canvas.height - player.size, newY));
+
+      let reward = -0.05; // Small penalty for each step to encourage efficiency
+      let hitObstacle = false;
+
+      obstacles.forEach(obs => {
+        const dist = Math.hypot(newX - obs.x, newY - obs.y);
+        if (dist < player.size + obs.size) {
+          reward = -2; // Large penalty for hitting obstacle
+          hitObstacle = true;
+        } else if (dist < 40) {
+          reward -= 0.2; // Penalty for getting too close to obstacles
+        }
+      });
+
+      for (let i = coins.length - 1; i >= 0; i--) {
+        const dist = Math.hypot(newX - coins[i].x, newY - coins[i].y);
+        if (dist < player.size + coins[i].size) {
+          reward = 5; // Large reward for collecting coin
+          coins.splice(i, 1);
+          spawnCoin();
+          gameScore++;
+          currentRun++;
+        }
+      }
+
+      // Strong reward for moving towards coin, penalty for moving away
+      const oldCoinDist = Math.hypot(nearestCoin.x - player.x, nearestCoin.y - player.y);
+      const newCoinDist = Math.hypot(nearestCoin.x - newX, nearestCoin.y - newY);
+      const distChange = oldCoinDist - newCoinDist;
+      reward += distChange * 0.5; // Scale the distance reward
+
+      player.x = newX;
+      player.y = newY;
+
+      // Q-learning update with future reward consideration
+      const nextInputs = [
+        (nearestObs.x - player.x) / canvas.width,
+        (nearestObs.y - player.y) / canvas.height,
+        nearestObs.vx / 2,
+        nearestObs.vy / 2,
+        (nearestCoin.x - player.x) / canvas.width,
+        (nearestCoin.y - player.y) / canvas.height,
+        Math.hypot(nearestObs.x - player.x, nearestObs.y - player.y) / 400,
+        Math.hypot(nearestCoin.x - player.x, nearestCoin.y - player.y) / 400
+      ];
+
+      const currentQ = gameNet.predict(inputs);
+      const nextQ = gameNet.predict(nextInputs);
+      const maxNextQ = Math.max(...nextQ);
+
+      // Q-learning formula: Q(s,a) = reward + gamma * max(Q(s',a'))
+      const gamma = 0.9; // Discount factor
+      const target = currentQ.slice();
+      target[action] = reward + gamma * maxNextQ;
+
+      // Train multiple times for stability
+      for (let i = 0; i < 5; i++) {
+        gameNet.train(inputs, target);
+      }
+
+      rewardHistory.push(reward);
+      if (rewardHistory.length > 100) rewardHistory.shift();
+
+      if (hitObstacle && currentRun > bestRun) {
+        bestRun = currentRun;
+        currentRun = 0;
+      }
+
+      trainingSteps++;
+      epsilon = Math.max(0.05, epsilon * 0.9995);
+
+      obstacles.forEach(obs => {
+        obs.x += obs.vx;
+        obs.y += obs.vy;
+        if (obs.x < obs.size || obs.x > canvas.width - obs.size) obs.vx *= -1;
+        if (obs.y < obs.size || obs.y > canvas.height - obs.size) obs.vy *= -1;
+      });
+
+      document.getElementById('score').textContent = gameScore;
+      document.getElementById('steps').textContent = trainingSteps;
+      document.getElementById('bestRun').textContent = bestRun;
+      const avgReward = rewardHistory.reduce((a, b) => a + b, 0) / rewardHistory.length;
+      document.getElementById('avgReward').textContent = avgReward.toFixed(3);
+    }
+
+    function drawGame() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = '#2196F3';
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, player.size, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#f44336';
+      obstacles.forEach(obs => {
+        ctx.beginPath();
+        ctx.arc(obs.x, obs.y, obs.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      ctx.fillStyle = '#4CAF50';
+      coins.forEach(coin => {
+        ctx.beginPath();
+        ctx.arc(coin.x, coin.y, coin.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    function resetGame() {
+      stopGame();
+      gameNet = new NeuralNetwork(8, [16, 12], 4);
+      gameScore = 0;
+      trainingSteps = 0;
+      bestRun = 0;
+      currentRun = 0;
+      rewardHistory = [];
+      epsilon = 0.3;
+      player.x = 200;
+      player.y = 150;
+      document.getElementById('score').textContent = '0';
+      document.getElementById('steps').textContent = '0';
+      document.getElementById('bestRun').textContent = '0';
+      document.getElementById('avgReward').textContent = '0';
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function saveGameAI() {
+      const data = gameNet.save();
+      localStorage.setItem('gameAI', data);
+      alert('Game AI saved!');
+    }
+
+    function loadGameAI() {
+      const data = localStorage.getItem('gameAI');
+      if (data) {
+        gameNet.load(data);
+        alert('Game AI loaded!');
+      } else {
+        alert('No saved AI found');
+      }
+    }
+
+    // 5. Pac-Man AI Game
+    let pacmanRunning = false;
+    let pacmanInterval;
+    const pacmanCanvas = document.getElementById('pacmanCanvas');
+    const pacmanCtx = pacmanCanvas.getContext('2d');
+
+    const pacman = { x: 200, y: 200, size: 12, speed: 4 };
+    const ghosts = [];
+    const pellets = [];
+    let pacmanScore = 0;
+    let pacmanSteps = 0;
+    let pacmanWins = 0;
+    let ghostWins = 0;
+    let pacmanEpsilon = 0.4;
+    let ghostEpsilon = 0.4;
+    const wallSize = 20;
+
+    function initPacman() {
+      // Reset Pac-Man position
+      pacman.x = 200;
+      pacman.y = 200;
+
+      // Create 3 ghosts
+      ghosts.length = 0;
+      const colors = ['#FF0000', '#00FFFF', '#FFA500'];
+      for (let i = 0; i < 3; i++) {
+        ghosts.push({
+          x: 50 + i * 150,
+          y: 50,
+          size: 12,
+          speed: 3.5,
+          color: colors[i]
+        });
+      }
+
+      // Create pellets in a grid
+      pellets.length = 0;
+      for (let y = 50; y < 380; y += 40) {
+        for (let x = 50; x < 380; x += 40) {
+          // Skip center area (Pac-Man spawn)
+          if (Math.abs(x - 200) > 30 || Math.abs(y - 200) > 30) {
+            pellets.push({ x, y, size: 4 });
+          }
+        }
+      }
+    }
+
+    function startPacman() {
+      if (pacmanRunning) return;
+      pacmanRunning = true;
+      initPacman();
+      pacmanScore = 0;
+
+      pacmanInterval = setInterval(() => {
+        updatePacman();
+        drawPacman();
+      }, 50);
+    }
+
+    function stopPacman() {
+      pacmanRunning = false;
+      clearInterval(pacmanInterval);
+    }
+
+    function updatePacman() {
+      // Find nearest ghost and pellet for Pac-Man
+      let nearestGhost = ghosts[0];
+      let minGhostDist = Infinity;
+      ghosts.forEach(ghost => {
+        const dist = Math.hypot(ghost.x - pacman.x, ghost.y - pacman.y);
+        if (dist < minGhostDist) {
+          minGhostDist = dist;
+          nearestGhost = ghost;
+        }
+      });
+
+      let nearestPellet = pellets[0] || { x: pacman.x, y: pacman.y };
+      let minPelletDist = Infinity;
+      pellets.forEach(pellet => {
+        const dist = Math.hypot(pellet.x - pacman.x, pellet.y - pacman.y);
+        if (dist < minPelletDist) {
+          minPelletDist = dist;
+          nearestPellet = pellet;
+        }
+      });
+
+      // Pac-Man's input state
+      const pacmanInputs = [
+        (nearestGhost.x - pacman.x) / pacmanCanvas.width,
+        (nearestGhost.y - pacman.y) / pacmanCanvas.height,
+        minGhostDist / 500,
+        (nearestPellet.x - pacman.x) / pacmanCanvas.width,
+        (nearestPellet.y - pacman.y) / pacmanCanvas.height,
+        minPelletDist / 500,
+        pacman.x / pacmanCanvas.width,
+        pacman.y / pacmanCanvas.height,
+        pellets.length / 100,
+        ghosts.length / 10
+      ];
+
+      // Pac-Man decides action
+      let pacmanAction;
+      if (Math.random() < pacmanEpsilon) {
+        pacmanAction = Math.floor(Math.random() * 4);
+      } else {
+        const output = pacmanNet.predict(pacmanInputs);
+        pacmanAction = output.indexOf(Math.max(...output));
+      }
+
+      // Move Pac-Man
+      let newPacX = pacman.x;
+      let newPacY = pacman.y;
+
+      if (pacmanAction === 0) newPacY -= pacman.speed; // Up
+      if (pacmanAction === 1) newPacY += pacman.speed; // Down
+      if (pacmanAction === 2) newPacX -= pacman.speed; // Left
+      if (pacmanAction === 3) newPacX += pacman.speed; // Right
+
+      newPacX = Math.max(wallSize, Math.min(pacmanCanvas.width - wallSize, newPacX));
+      newPacY = Math.max(wallSize, Math.min(pacmanCanvas.height - wallSize, newPacY));
+
+      // Calculate Pac-Man reward
+      let pacmanReward = -0.1; // Small penalty for each step
+      let gameOver = false;
+
+      // Check if caught by ghost BEFORE moving
+      ghosts.forEach(ghost => {
+        const distAfterMove = Math.hypot(ghost.x - newPacX, ghost.y - newPacY);
+        if (distAfterMove < ghost.size + pacman.size) {
+          pacmanReward = -50; // HUGE penalty for being caught
+          gameOver = true;
+        } else if (distAfterMove < 40) {
+          // Penalty for being dangerously close
+          pacmanReward -= (40 - distAfterMove) * 0.5;
+        }
+      });
+
+      // Strong reward for moving away from nearest ghost
+      const oldGhostDist = minGhostDist;
+      const newGhostDist = Math.hypot(nearestGhost.x - newPacX, nearestGhost.y - newPacY);
+      if (oldGhostDist < 80) { // Only care if ghost is nearby
+        pacmanReward += (newGhostDist - oldGhostDist) * 0.8; // Reward for escaping
+      }
+
+      // Check pellet collection
+      if (!gameOver) {
+        for (let i = pellets.length - 1; i >= 0; i--) {
+          const dist = Math.hypot(newPacX - pellets[i].x, newPacY - pellets[i].y);
+          if (dist < pacman.size) {
+            pacmanReward = 15; // Big reward for pellet
+            pellets.splice(i, 1);
+            pacmanScore++;
+          }
+        }
+
+        // Reward for moving toward pellet (but less important than avoiding ghosts)
+        const oldPelletDist = Math.hypot(nearestPellet.x - pacman.x, nearestPellet.y - pacman.y);
+        const newPelletDist = Math.hypot(nearestPellet.x - newPacX, nearestPellet.y - newPacY);
+        if (minGhostDist > 80) { // Only go for pellets if ghosts are far
+          pacmanReward += (oldPelletDist - newPelletDist) * 0.2;
+        }
+      }
+
+      pacman.x = newPacX;
+      pacman.y = newPacY;
+
+      // Train Pac-Man with Q-learning
+      const pacmanNextInputs = [
+        (nearestGhost.x - pacman.x) / pacmanCanvas.width,
+        (nearestGhost.y - pacman.y) / pacmanCanvas.height,
+        Math.hypot(nearestGhost.x - pacman.x, nearestGhost.y - pacman.y) / 500,
+        (nearestPellet.x - pacman.x) / pacmanCanvas.width,
+        (nearestPellet.y - pacman.y) / pacmanCanvas.height,
+        Math.hypot(nearestPellet.x - pacman.x, nearestPellet.y - pacman.y) / 500,
+        pacman.x / pacmanCanvas.width,
+        pacman.y / pacmanCanvas.height,
+        pellets.length / 100,
+        ghosts.length / 10
+      ];
+
+      const pacmanCurrentQ = pacmanNet.predict(pacmanInputs);
+      const pacmanNextQ = pacmanNet.predict(pacmanNextInputs);
+      const pacmanTarget = pacmanCurrentQ.slice();
+
+      if (gameOver) {
+        pacmanTarget[pacmanAction] = pacmanReward; // No future reward if game over
+      } else {
+        pacmanTarget[pacmanAction] = pacmanReward + 0.95 * Math.max(...pacmanNextQ);
+      }
+
+      // Train more aggressively
+      for (let i = 0; i < 5; i++) {
+        pacmanNet.train(pacmanInputs, pacmanTarget);
+      }
+
+      // Update each ghost
+      ghosts.forEach((ghost, idx) => {
+        // Ghost's input state (simpler - just track Pac-Man)
+        const ghostInputs = [
+          (pacman.x - ghost.x) / pacmanCanvas.width,
+          (pacman.y - ghost.y) / pacmanCanvas.height,
+          Math.hypot(pacman.x - ghost.x, pacman.y - ghost.y) / 500,
+          ghost.x / pacmanCanvas.width,
+          ghost.y / pacmanCanvas.height,
+          pacmanScore / 100
+        ];
+
+        // Ghost decides action
+        let ghostAction;
+        if (Math.random() < ghostEpsilon) {
+          ghostAction = Math.floor(Math.random() * 4);
+        } else {
+          const output = ghostNet.predict(ghostInputs);
+          ghostAction = output.indexOf(Math.max(...output));
+        }
+
+        // Move ghost
+        let newGhostX = ghost.x;
+        let newGhostY = ghost.y;
+
+        if (ghostAction === 0) newGhostY -= ghost.speed;
+        if (ghostAction === 1) newGhostY += ghost.speed;
+        if (ghostAction === 2) newGhostX -= ghost.speed;
+        if (ghostAction === 3) newGhostX += ghost.speed;
+
+        newGhostX = Math.max(wallSize, Math.min(pacmanCanvas.width - wallSize, newGhostX));
+        newGhostY = Math.max(wallSize, Math.min(pacmanCanvas.height - wallSize, newGhostY));
+
+        // Calculate ghost reward
+        const oldDist = Math.hypot(pacman.x - ghost.x, pacman.y - ghost.y);
+        const newDist = Math.hypot(pacman.x - newGhostX, pacman.y - newGhostY);
+        let ghostReward = (oldDist - newDist) * 2.0; // Strong reward for getting closer
+
+        ghost.x = newGhostX;
+        ghost.y = newGhostY;
+
+        // Check if ghost caught Pac-Man
+        const catchDist = Math.hypot(ghost.x - pacman.x, ghost.y - pacman.y);
+        if (catchDist < ghost.size + pacman.size) {
+          ghostReward = 50; // Big reward for catching
+          gameOver = true;
+        }
+
+        // Train ghost
+        const ghostNextInputs = [
+          (pacman.x - ghost.x) / pacmanCanvas.width,
+          (pacman.y - ghost.y) / pacmanCanvas.height,
+          Math.hypot(pacman.x - ghost.x, pacman.y - ghost.y) / 500,
+          ghost.x / pacmanCanvas.width,
+          ghost.y / pacmanCanvas.height,
+          pacmanScore / 100
+        ];
+
+        const ghostCurrentQ = ghostNet.predict(ghostInputs);
+        const ghostNextQ = ghostNet.predict(ghostNextInputs);
+        const ghostTarget = ghostCurrentQ.slice();
+        ghostTarget[ghostAction] = ghostReward + 0.9 * Math.max(...ghostNextQ);
+
+        for (let i = 0; i < 5; i++) {
+          ghostNet.train(ghostInputs, ghostTarget);
+        }
+      });
+
+      // Handle game over
+      if (gameOver) {
+        ghostWins++;
+        initPacman();
+        pacmanScore = 0;
+      }
+
+      // Check win condition
+      if (pellets.length === 0) {
+        pacmanReward = 100; // Huge reward for winning
+        pacmanWins++;
+        initPacman();
+        pacmanScore = 0;
+      }
+
+      pacmanSteps++;
+      pacmanEpsilon = Math.max(0.05, pacmanEpsilon * 0.9995);
+      ghostEpsilon = Math.max(0.05, ghostEpsilon * 0.9995);
+
+      // Update display
+      document.getElementById('pacmanScore').textContent = pacmanScore;
+      document.getElementById('pacmanSteps').textContent = pacmanSteps;
+      document.getElementById('pacmanWins').textContent = pacmanWins;
+      document.getElementById('ghostWins').textContent = ghostWins;
+    }
+
+    function drawPacman() {
+      pacmanCtx.fillStyle = '#000';
+      pacmanCtx.fillRect(0, 0, pacmanCanvas.width, pacmanCanvas.height);
+
+      // Draw walls
+      pacmanCtx.strokeStyle = '#0000FF';
+      pacmanCtx.lineWidth = 3;
+      pacmanCtx.strokeRect(wallSize, wallSize,
+        pacmanCanvas.width - wallSize * 2,
+        pacmanCanvas.height - wallSize * 2);
+
+      // Draw pellets
+      pacmanCtx.fillStyle = '#FFB8FF';
+      pellets.forEach(pellet => {
+        pacmanCtx.beginPath();
+        pacmanCtx.arc(pellet.x, pellet.y, pellet.size, 0, Math.PI * 2);
+        pacmanCtx.fill();
+      });
+
+      // Draw Pac-Man
+      pacmanCtx.fillStyle = '#FFFF00';
+      pacmanCtx.beginPath();
+      pacmanCtx.arc(pacman.x, pacman.y, pacman.size, 0.2 * Math.PI, 1.8 * Math.PI);
+      pacmanCtx.lineTo(pacman.x, pacman.y);
+      pacmanCtx.fill();
+
+      // Draw ghosts
+      ghosts.forEach(ghost => {
+        pacmanCtx.fillStyle = ghost.color;
+        pacmanCtx.beginPath();
+        pacmanCtx.arc(ghost.x, ghost.y - 3, ghost.size, Math.PI, 0);
+        pacmanCtx.lineTo(ghost.x + ghost.size, ghost.y + ghost.size);
+        pacmanCtx.lineTo(ghost.x + ghost.size * 0.6, ghost.y + ghost.size * 0.5);
+        pacmanCtx.lineTo(ghost.x, ghost.y + ghost.size);
+        pacmanCtx.lineTo(ghost.x - ghost.size * 0.6, ghost.y + ghost.size * 0.5);
+        pacmanCtx.lineTo(ghost.x - ghost.size, ghost.y + ghost.size);
+        pacmanCtx.closePath();
+        pacmanCtx.fill();
+
+        // Eyes
+        pacmanCtx.fillStyle = '#FFF';
+        pacmanCtx.beginPath();
+        pacmanCtx.arc(ghost.x - 4, ghost.y - 2, 3, 0, Math.PI * 2);
+        pacmanCtx.arc(ghost.x + 4, ghost.y - 2, 3, 0, Math.PI * 2);
+        pacmanCtx.fill();
+
+        pacmanCtx.fillStyle = '#00F';
+        pacmanCtx.beginPath();
+        pacmanCtx.arc(ghost.x - 4, ghost.y - 2, 1.5, 0, Math.PI * 2);
+        pacmanCtx.arc(ghost.x + 4, ghost.y - 2, 1.5, 0, Math.PI * 2);
+        pacmanCtx.fill();
+      });
+    }
+
+    function resetPacman() {
+      stopPacman();
+      pacmanNet = new NeuralNetwork(10, [20, 16], 4);
+      ghostNet = new NeuralNetwork(6, [12, 8], 4);
+      pacmanScore = 0;
+      pacmanSteps = 0;
+      pacmanWins = 0;
+      ghostWins = 0;
+      pacmanEpsilon = 0.4;
+      ghostEpsilon = 0.4;
+      document.getElementById('pacmanScore').textContent = '0';
+      document.getElementById('pacmanSteps').textContent = '0';
+      document.getElementById('pacmanWins').textContent = '0';
+      document.getElementById('ghostWins').textContent = '0';
+      pacmanCtx.clearRect(0, 0, pacmanCanvas.width, pacmanCanvas.height);
+    }
+
+    function savePacmanAI() {
+      const data = {
+        pacman: pacmanNet.save(),
+        ghost: ghostNet.save()
+      };
+      localStorage.setItem('pacmanAI', JSON.stringify(data));
+      alert('Pac-Man AIs saved!');
+    }
+
+    function loadPacmanAI() {
+      const data = localStorage.getItem('pacmanAI');
+      if (data) {
+        const parsed = JSON.parse(data);
+        pacmanNet.load(parsed.pacman);
+        ghostNet.load(parsed.ghost);
+        alert('Pac-Man AIs loaded!');
+      } else {
+        alert('No saved AI found');
+      }
+    }
+
+    // 6. Sentiment Analysis
+    function trainSentiment() {
+      const examples = [
+        { text: "great awesome happy", sentiment: 1 },
+        { text: "wonderful excellent", sentiment: 1 },
+        { text: "bad terrible awful", sentiment: 0 },
+        { text: "horrible disgusting", sentiment: 0 },
+        { text: "love amazing fantastic", sentiment: 1 },
+        { text: "hate worst disappointing", sentiment: 0 }
+      ];
+
+      for (let i = 0; i < 1000; i++) {
+        examples.forEach(ex => {
+          const input = textToVector(ex.text);
+          sentimentNet.train(input, [ex.sentiment]);
+        });
+      }
+
+      document.getElementById('sentimentOutput').innerHTML = 'Sentiment model trained on examples';
+    }
+
+    function textToVector(text) {
+      const normalized = text.toLowerCase().padEnd(20, ' ').slice(0, 20);
+      return Array.from(normalized).map(c => c.charCodeAt(0) / 127);
+    }
+
+    function analyzeSentiment() {
+      const text = document.getElementById('sentimentText').value;
+      if (!text) return;
+
+      const input = textToVector(text);
+      const result = sentimentNet.predict(input)[0];
+
+      const sentiment = result > 0.5 ? 'Positive' : 'Negative';
+      const confidence = result > 0.5 ? result : 1 - result;
+
+      document.getElementById('sentimentOutput').innerHTML =
+        `Sentiment: <strong>${sentiment}</strong> (${(confidence * 100).toFixed(1)}% confidence)`;
+    }
+
+    function resetSentiment() {
+      sentimentNet = new NeuralNetwork(20, [12], 1);
+      document.getElementById('sentimentOutput').innerHTML = 'Sentiment model reset';
+    }
+
+    // 7. Save/Load All
+    function saveAll() {
+      const allData = {
+        xor: xorNet.save(),
+        pattern: patternNet.save(),
+        digit: digitNet.save(),
+        game: gameNet.save(),
+        pacman: pacmanNet.save(),
+        ghost: ghostNet.save(),
+        sentiment: sentimentNet.save(),
+        patterns: learnedPatterns,
+        digitData: digitTrainingData
+      };
+      localStorage.setItem('allNetworks', JSON.stringify(allData));
+      document.getElementById('saveOutput').innerHTML = 'All networks saved to browser storage';
+    }
+
+    function loadAll() {
+      const data = localStorage.getItem('allNetworks');
+      if (!data) {
+        document.getElementById('saveOutput').innerHTML = 'No saved data found';
+        return;
+      }
+
+      const allData = JSON.parse(data);
+      xorNet.load(allData.xor);
+      patternNet.load(allData.pattern);
+      digitNet.load(allData.digit);
+      gameNet.load(allData.game);
+      if (allData.pacman) pacmanNet.load(allData.pacman);
+      if (allData.ghost) ghostNet.load(allData.ghost);
+      sentimentNet.load(allData.sentiment);
+      learnedPatterns.length = 0;
+      learnedPatterns.push(...allData.patterns);
+
+      if (allData.digitData) {
+        digitTrainingData.forEach((arr, i) => {
+          arr.length = 0;
+          arr.push(...allData.digitData[i]);
+          const btn = document.getElementById(`digit-btn-${i}`);
+          btn.textContent = `${i}: ${arr.length} samples`;
+          if (arr.length > 0) btn.className = 'digit-button active';
+        });
+      }
+
+      document.getElementById('saveOutput').innerHTML = 'All networks loaded from storage';
+    }
+
+    function clearMemory() {
+      xorNet.clearMemory();
+      patternNet.clearMemory();
+      digitNet.clearMemory();
+      gameNet.clearMemory();
+      pacmanNet.clearMemory();
+      ghostNet.clearMemory();
+      sentimentNet.clearMemory();
+      document.getElementById('saveOutput').innerHTML = 'All memory cleared';
+    }
+  </script>
+</body>
+
+</html>

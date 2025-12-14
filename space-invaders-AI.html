@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Network Space Invaders</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            color: #fff;
+            padding: 20px;
+            display: flex;
+            gap: 20px;
+        }
+
+        #game-container {
+            flex-shrink: 0;
+        }
+
+        #game-canvas {
+            border: 3px solid #0f0;
+            background: #000;
+            display: block;
+            image-rendering: pixelated;
+        }
+
+        #network-canvas {
+            border: 2px solid #333;
+            background: #0a0a0a;
+            display: block;
+            margin-top: 10px;
+        }
+
+        #debug-panel {
+            flex: 1;
+            background: #111;
+            border: 2px solid #333;
+            padding: 15px;
+            overflow-y: auto;
+            max-height: 920px;
+            min-width: 400px;
+        }
+
+        .debug-section {
+            margin-bottom: 20px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 15px;
+        }
+
+        .debug-section:last-child {
+            border-bottom: none;
+        }
+
+        h2 {
+            color: #0f0;
+            font-size: 16px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        h3 {
+            color: #f0f;
+            font-size: 14px;
+            margin: 10px 0 5px 0;
+        }
+
+        .stat-line {
+            font-size: 12px;
+            margin: 3px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .stat-label {
+            color: #888;
+        }
+
+        .stat-value {
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .highlight {
+            color: #0f0;
+        }
+
+        .danger {
+            color: #f00;
+        }
+
+        .warning {
+            color: #ff0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #333;
+            margin: 5px 0;
+            border: 1px solid #555;
+        }
+
+        .progress-fill {
+            height: 100%;
+            transition: width 0.3s;
+        }
+
+        .progress-fill.health {
+            background: #f00;
+        }
+
+        .progress-fill.enemies {
+            background: #0f0;
+        }
+
+        .controls {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: #333;
+            color: #fff;
+            border: 2px solid #666;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #555;
+            border-color: #888;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        .chart-container {
+            margin-top: 10px;
+            height: 100px;
+            background: #0a0a0a;
+            border: 1px solid #333;
+            position: relative;
+        }
+
+        canvas.chart {
+            width: 100%;
+            height: 100%;
+        }
+
+        .action-log {
+            font-size: 11px;
+            max-height: 120px;
+            overflow-y: auto;
+            background: #0a0a0a;
+            padding: 8px;
+            border: 1px solid #333;
+            margin-top: 5px;
+        }
+
+        .log-entry {
+            margin: 2px 0;
+            opacity: 0.6;
+        }
+
+        .log-entry.recent {
+            opacity: 1;
+            color: #0f0;
+        }
+
+        .mode-switch {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+
+        .mode-btn {
+            padding: 5px 10px;
+            font-size: 11px;
+        }
+
+        .mode-btn.active {
+            background: #0f0;
+            color: #000;
+            border-color: #0f0;
+        }
+
+        label {
+            color: #fff;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        input[type="number"] {
+            width: 50px;
+            background: #222;
+            color: #fff;
+            border: 1px solid #666;
+            padding: 2px 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas" width="700" height="700"></canvas>
+        <div class="controls">
+            <button onclick="resetGame()">Reset AI</button>
+            <button onclick="togglePause()">Pause/Resume</button>
+            <button onclick="saveAI()">Save AI</button>
+            <button onclick="loadAI()">Load AI</button>
+            <label>
+                Speed:
+                <input type="number" id="speed-input" min="1" max="10" value="1">
+            </label>
+            <label>
+                <input type="checkbox" id="disable-renderer" onchange="rendererEnabled = !this.checked">
+                Disable Renderer
+            </label>
+        </div>
+        <div class="mode-switch">
+            <button class="mode-btn active" onclick="setMode('ai')">AI Mode</button>
+            <button class="mode-btn" onclick="setMode('manual')">Manual Mode</button>
+            <span style="color:#888; font-size:11px; margin-left:10px;">Use arrow keys + space in manual mode</span>
+        </div>
+        <h3 style="color:#0ff; margin-top:15px; margin-bottom:5px;">Neural Network Visualization</h3>
+        <canvas id="network-canvas" width="700" height="200"></canvas>
+    </div>
+
+    <div id="debug-panel">
+        <div class="debug-section">
+            <h2>🎮 Game Status</h2>
+            <div class="stat-line">
+                <span class="stat-label">Wave:</span>
+                <span class="stat-value" id="wave">1</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Score:</span>
+                <span class="stat-value highlight" id="score">0</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Player Health:</span>
+                <span class="stat-value danger" id="health">1</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill health" id="health-progress"></div>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Enemies Remaining:</span>
+                <span class="stat-value warning" id="enemies">0</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill enemies" id="enemy-progress"></div>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Time Alive:</span>
+                <span class="stat-value" id="time-alive">0</span>
+            </div>
+        </div>
+
+        <div class="debug-section">
+            <h2>🤖 Player AI</h2>
+            <div class="stat-line">
+                <span class="stat-label">Mode:</span>
+                <span class="stat-value" id="ai-mode">AI Training</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Epsilon (Exploration):</span>
+                <span class="stat-value" id="epsilon">0.10</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Learning Rate:</span>
+                <span class="stat-value" id="lr">0.001</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Experience Buffer:</span>
+                <span class="stat-value" id="exp-buffer">0</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Last Action:</span>
+                <span class="stat-value highlight" id="last-action">-</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Avg Q-Value:</span>
+                <span class="stat-value" id="avg-q">0.00</span>
+            </div>
+            <h3>State Inputs:</h3>
+            <div class="action-log" id="state-log"></div>
+        </div>
+
+        <div class="debug-section">
+            <h2>📊 Training Stats</h2>
+            <div class="stat-line">
+                <span class="stat-label">Best Score:</span>
+                <span class="stat-value" id="best-score">0</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Avg Score (Last 10):</span>
+                <span class="stat-value" id="avg-score">0.0</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Longest Survival:</span>
+                <span class="stat-value" id="longest-survival">0</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Total Kills:</span>
+                <span class="stat-value" id="total-kills">0</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Highest Wave:</span>
+                <span class="stat-value" id="highest-wave">1</span>
+            </div>
+            <h3>Score History:</h3>
+            <div class="chart-container">
+                <canvas class="chart" id="score-chart"></canvas>
+            </div>
+        </div>
+
+        <div class="debug-section">
+            <h2>🧠 Network Info</h2>
+            <div class="stat-line">
+                <span class="stat-label">Architecture:</span>
+                <span class="stat-value">15 → 256 → 128 → 4</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Optimizer:</span>
+                <span class="stat-value">Adam</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Workers Enabled:</span>
+                <span class="stat-value highlight" id="workers">Yes</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Worker Threads:</span>
+                <span class="stat-value" id="worker-threads">4</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Memory Usage:</span>
+                <span class="stat-value" id="memory">0.0 MB</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Training Steps:</span>
+                <span class="stat-value" id="train-steps">0</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="amity-neural-network.js"></script>
+    <script>
+        // ============================================================================
+        // Neural Space Invaders with Web Workers
+        // ============================================================================
+
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const networkCanvas = document.getElementById('network-canvas');
+
+        // Game constants
+        const PLAYER_SIZE = 30;
+        const PLAYER_SPEED = 6;
+        const ENEMY_SIZE = 30;
+        const ENEMY_ROWS = 4;
+        const ENEMY_COLS = 8;
+        const ENEMY_SPEED = 1;
+        const BULLET_SPEED = 8;
+        const ENEMY_BULLET_SPEED = 5;
+        const BARRIER_BLOCK_SIZE = 8;
+        const SHOOT_COOLDOWN = 15;
+        const ENEMY_SHOOT_CHANCE = 0.002;
+
+        // Game state
+        let player = {};
+        let enemies = [];
+        let playerBullets = [];
+        let enemyBullets = [];
+        let barriers = [];
+        let score = 0;
+        let wave = 1;
+        let timeAlive = 0;
+        let isPaused = false;
+        let gameOver = false;
+        let playerHealth = 1;
+        let mode = 'ai';
+        let shootCooldown = 0;
+        let enemyDirection = 1;
+        let enemyMoveCounter = 0;
+        let totalKills = 0;
+        let highestWave = 1;
+        let cameraShake = 0;
+
+        // Neural network
+        let playerBrain;
+
+        // Training stats
+        let scoreHistory = [];
+        let bestScore = 0;
+        let longestSurvival = 0;
+        let lastState = null;
+        let lastAction = null;
+        let actionLog = [];
+        let totalTrainingSteps = 0;
+
+        // Manual control
+        let keys = {};
+
+        // ============================================================================
+        // Initialization
+        // ============================================================================
+
+        function initGame() {
+            // Initialize player
+            player = {
+                x: canvas.width / 2 - PLAYER_SIZE / 2,
+                y: canvas.height - 80,
+                width: PLAYER_SIZE,
+                height: PLAYER_SIZE,
+                speed: PLAYER_SPEED
+            };
+
+            // Initialize enemies
+            enemies = [];
+            const startX = (canvas.width - (ENEMY_COLS * (ENEMY_SIZE + 20))) / 2;
+            const startY = 80;
+            const enemyEmojis = ['👾', '👽', '🛸', '🤖'];
+
+            for (let row = 0; row < ENEMY_ROWS; row++) {
+                for (let col = 0; col < ENEMY_COLS; col++) {
+                    enemies.push({
+                        x: startX + col * (ENEMY_SIZE + 20),
+                        y: startY + row * (ENEMY_SIZE + 20),
+                        width: ENEMY_SIZE,
+                        height: ENEMY_SIZE,
+                        alive: true,
+                        emoji: enemyEmojis[row % enemyEmojis.length]
+                    });
+                }
+            }
+
+            // Initialize barriers
+            barriers = [];
+            const numBarriers = 4;
+            const barrierSpacing = canvas.width / (numBarriers + 1);
+            const barrierY = canvas.height - 200;
+
+            for (let i = 0; i < numBarriers; i++) {
+                const barrierX = barrierSpacing * (i + 1) - 30;
+                createBarrier(barrierX, barrierY);
+            }
+
+            // Initialize neural network if not exists
+            if (!playerBrain) {
+                playerBrain = new NeuralNetwork(
+                    15, // Input state
+                    [256, 128], // Larger hidden layers for better learning
+                    4, // Output: left, right, shoot, none
+                    {
+                        learningRate: 0.0005,
+                        activation: 'relu',
+                        outputActivation: 'linear',
+                        optimizer: 'adam',
+                        epsilon: 0.3, // Higher initial exploration
+                        gamma: 0.98, // Higher discount for long-term rewards
+                        bufferSize: 50000, // Larger buffer
+                        batchSize: 64, // Larger batch size
+                        useWorkers: true,
+                        numWorkers: navigator.hardwareConcurrency || 4
+                    }
+                );
+            }
+
+            playerBullets = [];
+            enemyBullets = [];
+            shootCooldown = 0;
+            enemyDirection = 1;
+            enemyMoveCounter = 0;
+            gameOver = false;
+            lastState = null;
+            lastAction = null;
+
+            if (wave === 1) {
+                score = 0;
+                timeAlive = 0;
+                playerHealth = 1;
+            }
+        }
+
+        function createBarrier(x, y) {
+            const shape = [
+                [0, 0, 1, 1, 1, 1, 1, 1, 0, 0],
+                [0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 0, 0, 0, 0, 1, 1, 1],
+                [1, 1, 1, 0, 0, 0, 0, 1, 1, 1]
+            ];
+
+            for (let row = 0; row < shape.length; row++) {
+                for (let col = 0; col < shape[row].length; col++) {
+                    if (shape[row][col] === 1) {
+                        barriers.push({
+                            x: x + col * BARRIER_BLOCK_SIZE,
+                            y: y + row * BARRIER_BLOCK_SIZE,
+                            width: BARRIER_BLOCK_SIZE,
+                            height: BARRIER_BLOCK_SIZE
+                        });
+                    }
+                }
+            }
+        }
+
+        // ============================================================================
+        // State Generation
+        // ============================================================================
+
+        function getGameState() {
+            const state = [];
+
+            // 1. Player position (normalized)
+            state.push(player.x / canvas.width);
+
+            // 2. Player health (normalized)
+            state.push(playerHealth); // Already 0 or 1
+
+            // 3. Closest enemy position and distance
+            let closestEnemy = null;
+            let minDist = Infinity;
+            for (let enemy of enemies) {
+                if (!enemy.alive) continue;
+                const dist = Math.sqrt(
+                    Math.pow(enemy.x - player.x, 2) +
+                    Math.pow(enemy.y - player.y, 2)
+                );
+                if (dist < minDist) {
+                    minDist = dist;
+                    closestEnemy = enemy;
+                }
+            }
+
+            if (closestEnemy) {
+                state.push(closestEnemy.x / canvas.width);
+                state.push(closestEnemy.y / canvas.height);
+                state.push(minDist / canvas.height);
+            } else {
+                state.push(0.5);
+                state.push(0);
+                state.push(1);
+            }
+
+            // 4. Enemy density in three columns
+            const leftEnemies = enemies.filter(e => e.alive && e.x < canvas.width / 3).length;
+            const centerEnemies = enemies.filter(e => e.alive && e.x >= canvas.width / 3 && e.x < 2 * canvas.width / 3).length;
+            const rightEnemies = enemies.filter(e => e.alive && e.x >= 2 * canvas.width / 3).length;
+            const totalEnemies = enemies.filter(e => e.alive).length;
+
+            state.push(totalEnemies > 0 ? leftEnemies / totalEnemies : 0);
+            state.push(totalEnemies > 0 ? centerEnemies / totalEnemies : 0);
+            state.push(totalEnemies > 0 ? rightEnemies / totalEnemies : 0);
+
+            // 5. Closest enemy bullet
+            let closestBullet = null;
+            let minBulletDist = Infinity;
+            for (let bullet of enemyBullets) {
+                const dist = Math.sqrt(
+                    Math.pow(bullet.x - player.x, 2) +
+                    Math.pow(bullet.y - player.y, 2)
+                );
+                if (dist < minBulletDist && bullet.y < player.y) {
+                    minBulletDist = dist;
+                    closestBullet = bullet;
+                }
+            }
+
+            if (closestBullet) {
+                state.push(closestBullet.x / canvas.width);
+                state.push(closestBullet.y / canvas.height);
+                state.push(minBulletDist / canvas.height);
+            } else {
+                state.push(0.5);
+                state.push(0);
+                state.push(1);
+            }
+
+            // 6. Barrier coverage in player column
+            const playerCol = Math.floor(player.x / (canvas.width / 3));
+            const barrierCoverage = barriers.filter(b => {
+                const bCol = Math.floor(b.x / (canvas.width / 3));
+                return bCol === playerCol;
+            }).length;
+            state.push(barrierCoverage / 20);
+
+            // 7. Shoot cooldown status
+            state.push(shootCooldown > 0 ? 1 : 0);
+
+            // 8. Number of enemies alive
+            state.push(totalEnemies / (ENEMY_ROWS * ENEMY_COLS));
+
+            return state;
+        }
+
+        // ============================================================================
+        // AI Decision Making
+        // ============================================================================
+
+        function decidePaddleMove() {
+            if (mode === 'manual') {
+                return manualControl();
+            }
+
+            const state = getGameState();
+
+            // Get action from neural network
+            const qValues = playerBrain.predict(state);
+            const actionIndex = playerBrain.selectAction(state, true);
+
+            // Store experience from last step
+            if (lastState !== null && lastAction !== null) {
+                const reward = calculateReward();
+                playerBrain.storeExperience(lastState, lastAction, reward, state, false);
+            }
+
+            lastState = state;
+            lastAction = actionIndex;
+
+            // Log action
+            logAction(actionIndex, qValues);
+
+            return actionIndex; // 0 = left, 1 = right, 2 = shoot, 3 = none
+        }
+
+        function manualControl() {
+            if (keys['ArrowLeft'] || keys['a']) return 0;
+            if (keys['ArrowRight'] || keys['d']) return 1;
+            if (keys[' '] || keys['Space']) return 2;
+            return 3;
+        }
+
+        // ============================================================================
+        // Reward Function
+        // ============================================================================
+
+        function calculateReward() {
+            let reward = 0;
+
+            // Small penalty for time (encourage action)
+            reward -= 0.01;
+
+            // Reward for staying alive (more important now with 1-hit death)
+            reward += 0.1;
+
+            // Penalty for being in danger zone (increased importance)
+            for (let bullet of enemyBullets) {
+                const dist = Math.abs(bullet.x - player.x);
+                if (dist < 50 && bullet.y > player.y - 100) {
+                    reward -= 5; // Higher penalty for danger
+                }
+            }
+
+            // Reward for positioning under enemies
+            let enemiesAbove = 0;
+            for (let enemy of enemies) {
+                if (!enemy.alive) continue;
+                const dist = Math.abs(enemy.x - player.x);
+                if (dist < PLAYER_SIZE && enemy.y < player.y) {
+                    enemiesAbove++;
+                }
+            }
+            reward += enemiesAbove * 0.5;
+
+            return reward;
+        }
+
+        // ============================================================================
+        // Game Update
+        // ============================================================================
+
+        function update() {
+            if (isPaused || gameOver) return;
+
+            timeAlive++;
+
+            // AI decision
+            const action = decidePaddleMove();
+
+            // Execute action
+            if (action === 0) { // Left
+                player.x = Math.max(0, player.x - player.speed);
+            } else if (action === 1) { // Right
+                player.x = Math.min(canvas.width - player.width, player.x + player.speed);
+            } else if (
+                action === 2 &&
+                shootCooldown === 0 &&
+                playerBullets.length === 0 // Only allow one bullet at a time
+            ) {
+                playerBullets.push({
+                    x: player.x + player.width / 2,
+                    y: player.y,
+                    width: 4,
+                    height: 12
+                });
+                shootCooldown = SHOOT_COOLDOWN;
+            }
+
+            if (shootCooldown > 0) shootCooldown--;
+
+            // Move enemies
+            enemyMoveCounter++;
+            if (enemyMoveCounter >= 30) {
+                enemyMoveCounter = 0;
+
+                let shouldMoveDown = false;
+                for (let enemy of enemies) {
+                    if (!enemy.alive) continue;
+                    enemy.x += enemyDirection * ENEMY_SIZE;
+
+                    if (enemy.x <= 0 || enemy.x >= canvas.width - ENEMY_SIZE) {
+                        shouldMoveDown = true;
+                    }
+                }
+
+                if (shouldMoveDown) {
+                    enemyDirection *= -1;
+                    for (let enemy of enemies) {
+                        if (!enemy.alive) continue;
+                        enemy.y += ENEMY_SIZE / 2;
+
+                        // Check if enemies reached player
+                        if (enemy.y >= player.y - ENEMY_SIZE) {
+                            gameOver = true;
+                            endGame(false);
+                            return;
+                        }
+                    }
+                }
+            }
+
+            // Enemies shoot
+            for (let enemy of enemies) {
+                if (!enemy.alive) continue;
+                if (Math.random() < ENEMY_SHOOT_CHANCE) {
+                    enemyBullets.push({
+                        x: enemy.x + enemy.width / 2,
+                        y: enemy.y + enemy.height,
+                        width: 3,
+                        height: 10
+                    });
+                }
+            }
+
+            // Move player bullets
+            for (let i = playerBullets.length - 1; i >= 0; i--) {
+                playerBullets[i].y -= BULLET_SPEED;
+                if (playerBullets[i].y < 0) {
+                    playerBullets.splice(i, 1);
+                }
+            }
+
+            // Move enemy bullets
+            for (let i = enemyBullets.length - 1; i >= 0; i--) {
+                enemyBullets[i].y += ENEMY_BULLET_SPEED;
+                if (enemyBullets[i].y > canvas.height) {
+                    enemyBullets.splice(i, 1);
+                }
+            }
+
+            // Check player bullet collisions with enemies
+            for (let i = playerBullets.length - 1; i >= 0; i--) {
+                const bullet = playerBullets[i];
+
+                for (let enemy of enemies) {
+                    if (!enemy.alive) continue;
+
+                    if (bullet.x > enemy.x && bullet.x < enemy.x + enemy.width &&
+                        bullet.y > enemy.y && bullet.y < enemy.y + enemy.height) {
+
+                        enemy.alive = false;
+                        playerBullets.splice(i, 1);
+                        score += 100;
+                        totalKills++;
+                        cameraShake = 3;
+
+                        // Reward for kill
+                        if (lastState !== null) {
+                            const state = getGameState();
+                            playerBrain.storeExperience(lastState, lastAction, 50, state, false);
+                        }
+
+                        break;
+                    }
+                }
+            }
+
+            // Check enemy bullet collisions with player (1-hit death)
+            for (let i = enemyBullets.length - 1; i >= 0; i--) {
+                const bullet = enemyBullets[i];
+
+                if (bullet.x > player.x && bullet.x < player.x + player.width &&
+                    bullet.y > player.y && bullet.y < player.y + player.height) {
+
+                    playerHealth = 0;
+                    enemyBullets.splice(i, 1);
+                    cameraShake = 8;
+
+                    // Large penalty for death
+                    if (lastState !== null) {
+                        const state = getGameState();
+                        playerBrain.storeExperience(lastState, lastAction, -100, state, true);
+                    }
+
+                    gameOver = true;
+                    endGame(false);
+                    return;
+                }
+            }
+
+            // Check player bullet collisions with barriers
+            for (let i = playerBullets.length - 1; i >= 0; i--) {
+                const bullet = playerBullets[i];
+                let bulletDestroyed = false;
+                
+                for (let j = barriers.length - 1; j >= 0; j--) {
+                    const barrier = barriers[j];
+
+                    if (
+                        bullet.x > barrier.x && bullet.x < barrier.x + barrier.width &&
+                        bullet.y > barrier.y && bullet.y < barrier.y + barrier.height
+                    ) {
+                        barriers.splice(j, 1);
+                        playerBullets.splice(i, 1);
+                        cameraShake = 1;
+                        bulletDestroyed = true;
+                        break;
+                    }
+                }
+                
+                if (bulletDestroyed) break; // Exit outer loop completely
+            }
+
+            // Check enemy bullet collisions with barriers - instant destruction
+            for (let i = enemyBullets.length - 1; i >= 0; i--) {
+                const bullet = enemyBullets[i];
+
+                for (let j = barriers.length - 1; j >= 0; j--) {
+                    const barrier = barriers[j];
+
+                    if (bullet.x > barrier.x && bullet.x < barrier.x + barrier.width &&
+                        bullet.y > barrier.y && bullet.y < barrier.y + barrier.height) {
+                        barriers.splice(j, 1); // Instant destruction
+                        enemyBullets.splice(i, 1);
+
+                        cameraShake = 1;
+                        break;
+                    }
+                }
+            }
+
+            // Check win condition
+            const aliveEnemies = enemies.filter(e => e.alive).length;
+            if (aliveEnemies === 0) {
+                // Huge reward for clearing wave
+                if (lastState !== null) {
+                    const state = getGameState();
+                    playerBrain.storeExperience(lastState, lastAction, 200, state, false);
+                }
+
+                wave++;
+                if (wave > highestWave) highestWave = wave;
+
+                setTimeout(() => {
+                    initGame();
+                }, 1000);
+                return;
+            }
+
+            // Train network periodically
+            if (mode === 'ai' && timeAlive % 4 === 0) {
+                playerBrain.trainRL();
+                totalTrainingSteps++;
+            }
+
+            if (timeAlive % 100 === 0) {
+                playerBrain.cleanupMemory();
+            }
+
+            // Decay camera shake
+            if (cameraShake > 0) cameraShake--;
+        }
+
+        // ============================================================================
+        // Game End
+        // ============================================================================
+
+        function endGame(won) {
+            scoreHistory.push(score);
+            if (scoreHistory.length > 100) scoreHistory.shift();
+
+            if (score > bestScore) bestScore = score;
+            if (timeAlive > longestSurvival) longestSurvival = timeAlive;
+
+            // Decay exploration
+            if (mode === 'ai') {
+                playerBrain.decayEpsilon(0.995, 0.01);
+            }
+
+            // Reset for next game
+            setTimeout(() => {
+                wave = 1;
+                playerHealth = 1;
+                initGame();
+            }, 2000);
+        }
+
+        // ============================================================================
+        // Rendering
+        // ============================================================================
+
+        let rendererEnabled = true;
+
+        function draw() {
+            if (!rendererEnabled) return;
+
+            // Apply camera shake only when needed
+            if (cameraShake > 0) {
+                ctx.save();
+                const shakeX = (Math.random() - 0.5) * cameraShake * 2;
+                const shakeY = (Math.random() - 0.5) * cameraShake * 2;
+                ctx.translate(shakeX, shakeY);
+            }
+
+            // Clear canvas
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw barriers
+            for (let barrier of barriers) {
+                ctx.fillStyle = '#0f0';
+                ctx.fillRect(barrier.x, barrier.y, barrier.width, barrier.height);
+                ctx.strokeStyle = '#0a0';
+                ctx.strokeRect(barrier.x, barrier.y, barrier.width, barrier.height);
+            }
+
+            // Draw enemies
+            ctx.font = `${ENEMY_SIZE}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            for (let enemy of enemies) {
+                if (enemy.alive) {
+                    ctx.fillText(enemy.emoji, enemy.x + enemy.width / 2, enemy.y + enemy.height / 2);
+                }
+            }
+
+            // Draw player (custom ship)
+            drawPlayerShip(player.x, player.y, player.width, player.height);
+
+            // Draw player bullets
+            ctx.fillStyle = '#0ff';
+            for (let bullet of playerBullets) {
+                ctx.fillRect(bullet.x - bullet.width / 2, bullet.y, bullet.width, bullet.height);
+            }
+
+            // Draw enemy bullets
+            ctx.fillStyle = '#f00';
+            for (let bullet of enemyBullets) {
+                ctx.fillRect(bullet.x - bullet.width / 2, bullet.y, bullet.width, bullet.height);
+            }
+
+            // Draw HUD
+            ctx.fillStyle = '#0f0';
+            ctx.font = '20px Courier New';
+            ctx.textAlign = 'left';
+            ctx.fillText(`Score: ${score}`, 10, 30);
+            ctx.fillText(`Wave: ${wave}`, canvas.width - 150, 30);
+
+            ctx.fillStyle = '#f00';
+            ctx.fillText(`Health: ${playerHealth}`, 10, canvas.height - 10);
+
+            if (cameraShake > 0) {
+                ctx.restore();
+            }
+
+            // Draw network visualization
+            //drawNetworkVisualization();
+        }
+
+        function drawPlayerShip(x, y, width, height) {
+            ctx.fillStyle = '#0ff';
+            ctx.strokeStyle = '#0aa';
+            ctx.lineWidth = 2;
+
+            // Ship body (triangle)
+            ctx.beginPath();
+            ctx.moveTo(x + width / 2, y); // Top point
+            ctx.lineTo(x, y + height); // Bottom left
+            ctx.lineTo(x + width, y + height); // Bottom right
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Cockpit
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(x + width / 2, y + height / 3, 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Engines
+            ctx.fillStyle = '#f80';
+            ctx.fillRect(x + 3, y + height - 3, 6, 3);
+            ctx.fillRect(x + width - 9, y + height - 3, 6, 3);
+        }
+
+        function drawNetworkVisualization() {
+            playerBrain.drawNetwork(networkCanvas, {
+                nodeRadius: 5,
+                nodeColor: '#4CAF50',
+                activeNodeColor: '#FF5722',
+                lineColor: '#90A4AE',
+                activeLineColor: '#FFC107',
+                lineWidth: 0.5,
+                activeLineWidth: 1.5,
+                showLabels: true,
+                fontSize: 10,
+                activationThreshold: 0.2,
+                weightThreshold: 0.05
+            });
+        }
+
+        // ============================================================================
+        // Debug Panel
+        // ============================================================================
+
+        function updateDebugPanel() {
+            document.getElementById('wave').textContent = wave;
+            document.getElementById('score').textContent = score;
+            document.getElementById('health').textContent = playerHealth;
+            document.getElementById('health-progress').style.width = (playerHealth * 100) + '%';
+
+            const aliveEnemies = enemies.filter(e => e.alive).length;
+            document.getElementById('enemies').textContent = aliveEnemies;
+            const enemyProgress = ((ENEMY_ROWS * ENEMY_COLS - aliveEnemies) / (ENEMY_ROWS * ENEMY_COLS)) * 100;
+            document.getElementById('enemy-progress').style.width = enemyProgress + '%';
+
+            document.getElementById('time-alive').textContent = timeAlive;
+
+            // AI stats
+            document.getElementById('ai-mode').textContent = mode === 'ai' ? 'AI Training' : 'Manual Control';
+            document.getElementById('epsilon').textContent = playerBrain.epsilon.toFixed(3);
+            document.getElementById('lr').textContent = playerBrain.learningRate.toFixed(4);
+            document.getElementById('exp-buffer').textContent = playerBrain.getExperienceCount();
+
+            const actions = ['LEFT', 'RIGHT', 'SHOOT', 'NONE'];
+            document.getElementById('last-action').textContent = lastAction !== null ? actions[lastAction] : '-';
+
+            // Training stats
+            document.getElementById('best-score').textContent = bestScore;
+            const avgScore = scoreHistory.length > 0
+                ? scoreHistory.slice(-10).reduce((a, b) => a + b, 0) / Math.min(10, scoreHistory.length)
+                : 0;
+            document.getElementById('avg-score').textContent = avgScore.toFixed(1);
+            document.getElementById('longest-survival').textContent = longestSurvival;
+            document.getElementById('total-kills').textContent = totalKills;
+            document.getElementById('highest-wave').textContent = highestWave;
+
+            // Network info
+            const stats = playerBrain.getStats();
+            document.getElementById('workers').textContent = stats.workersEnabled ? 'Yes' : 'No';
+            document.getElementById('worker-threads').textContent = stats.numWorkers;
+            document.getElementById('memory').textContent = stats.memoryUsageMB.toFixed(2) + ' MB';
+            document.getElementById('train-steps').textContent = totalTrainingSteps;
+
+            drawScoreChart();
+        }
+
+        function logAction(action, qValues) {
+            const actions = ['LEFT', 'RIGHT', 'SHOOT', 'NONE'];
+            const avgQ = qValues.reduce((a, b) => a + b, 0) / qValues.length;
+
+            document.getElementById('avg-q').textContent = avgQ.toFixed(2);
+
+            const state = getGameState();
+            const stateStr = `Pos: ${state[0].toFixed(2)} | HP: ${state[1].toFixed(2)} | ` +
+                `Enemy: (${state[2].toFixed(2)}, ${state[3].toFixed(2)}) | ` +
+                `Bullet: ${state[10].toFixed(2)}`;
+
+            actionLog.unshift(stateStr);
+            if (actionLog.length > 10) actionLog.pop();
+
+            const logEl = document.getElementById('state-log');
+            logEl.innerHTML = actionLog.map((entry, i) =>
+                `<div class="log-entry ${i === 0 ? 'recent' : ''}">${entry}</div>`
+            ).join('');
+        }
+
+        function drawScoreChart() {
+            const chartCanvas = document.getElementById('score-chart');
+            const chartCtx = chartCanvas.getContext('2d');
+
+            chartCtx.clearRect(0, 0, chartCanvas.width, chartCanvas.height);
+
+            if (scoreHistory.length < 2) return;
+
+            const maxScore = Math.max(...scoreHistory, 1);
+            const step = chartCanvas.width / (scoreHistory.length - 1);
+
+            chartCtx.strokeStyle = '#0f0';
+            chartCtx.lineWidth = 2;
+            chartCtx.beginPath();
+
+            for (let i = 0; i < scoreHistory.length; i++) {
+                const x = i * step;
+                const y = chartCanvas.height - (scoreHistory[i] / maxScore * chartCanvas.height * 0.9);
+
+                if (i === 0) {
+                    chartCtx.moveTo(x, y);
+                } else {
+                    chartCtx.lineTo(x, y);
+                }
+            }
+
+            chartCtx.stroke();
+        }
+
+        // ============================================================================
+        // Game Loop
+        // ============================================================================
+
+        let lastTime = 0;
+
+        function gameLoop(timestamp) {
+            const speedInput = document.getElementById('speed-input');
+            const speed = Math.max(1, parseInt(speedInput.value) || 1);
+            const frameInterval = 16;
+
+            if (!lastTime) lastTime = timestamp;
+            const delta = timestamp - lastTime;
+            
+            if (delta >= frameInterval) {
+                for (let i = 0; i < speed; i++) {
+                    update();
+                }
+                draw();
+                lastTime = timestamp;
+            }
+
+            updateDebugPanel(); // <-- Now called once per frame, outside speed loop
+            requestAnimationFrame(gameLoop);
+        }
+
+        // ============================================================================
+        // Controls
+        // ============================================================================
+
+        function resetGame() {
+            wave = 1;
+            scoreHistory = [];
+            bestScore = 0;
+            longestSurvival = 0;
+            totalKills = 0;
+            highestWave = 1;
+            totalTrainingSteps = 0;
+            playerHealth = 1;
+
+            // Reset network
+            playerBrain = new NeuralNetwork(
+                15,
+                [256, 128],
+                4,
+                {
+                    learningRate: 0.0005,
+                    activation: 'relu',
+                    outputActivation: 'linear',
+                    optimizer: 'adam',
+                    epsilon: 0.3,
+                    gamma: 0.98,
+                    bufferSize: 50000,
+                    batchSize: 64,
+                    useWorkers: true,
+                    numWorkers: navigator.hardwareConcurrency || 4
+                }
+            );
+
+            initGame();
+        }
+
+        function togglePause() {
+            isPaused = !isPaused;
+        }
+
+        function setMode(newMode) {
+            mode = newMode;
+
+            const buttons = document.querySelectorAll('.mode-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+
+            if (mode === 'ai') {
+                buttons[0].classList.add('active');
+            } else {
+                buttons[1].classList.add('active');
+            }
+        }
+
+        function saveAI() {
+            const saveData = {
+                brain: playerBrain.save(),
+                wave: wave,
+                bestScore: bestScore,
+                longestSurvival: longestSurvival,
+                totalKills: totalKills,
+                highestWave: highestWave,
+                scoreHistory: scoreHistory,
+                totalTrainingSteps: totalTrainingSteps
+            };
+
+            const dataStr = JSON.stringify(saveData);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `space-invaders-ai-wave${wave}.json`;
+            link.click();
+
+            URL.revokeObjectURL(url);
+            console.log('AI state saved!');
+        }
+
+        function loadAI() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+
+                reader.onload = (event) => {
+                    try {
+                        const saveData = JSON.parse(event.target.result);
+
+                        playerBrain.load(saveData.brain);
+                        wave = saveData.wave || wave;
+                        bestScore = saveData.bestScore || bestScore;
+                        longestSurvival = saveData.longestSurvival || longestSurvival;
+                        totalKills = saveData.totalKills || totalKills;
+                        highestWave = saveData.highestWave || highestWave;
+                        scoreHistory = saveData.scoreHistory || scoreHistory;
+                        totalTrainingSteps = saveData.totalTrainingSteps || totalTrainingSteps;
+
+                        console.log(`AI state loaded! Wave ${wave}`);
+                        alert(`AI loaded successfully!\nWave: ${wave}\nBest Score: ${bestScore}`);
+
+                    } catch (error) {
+                        console.error('Error loading AI:', error);
+                        alert('Error loading AI file.');
+                    }
+                };
+
+                reader.readAsText(file);
+            };
+
+            input.click();
+        }
+
+        // Keyboard controls
+        window.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+        });
+
+        window.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+
+        // ============================================================================
+        // Start Game
+        // ============================================================================
+
+        initGame();
+        requestAnimationFrame(gameLoop);
+
+        console.log('Neural Space Invaders initialized!');
+        console.log('- AI learns to survive and eliminate enemies');
+        console.log('- Web Workers enabled for parallel training');
+        console.log('- Watch the neural network visualization!');
+    </script>
+</body>
+
+</html>

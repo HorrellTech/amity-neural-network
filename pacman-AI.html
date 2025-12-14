@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Network Pac-Man</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            color: #fff;
+            padding: 20px;
+            display: flex;
+            gap: 20px;
+        }
+
+        #game-container {
+            flex-shrink: 0;
+        }
+
+        #game-canvas {
+            border: 3px solid #00f;
+            background: #000;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        #debug-panel {
+            flex: 1;
+            background: #111;
+            border: 2px solid #333;
+            padding: 15px;
+            overflow-y: auto;
+            max-height: 620px;
+            min-width: 400px;
+        }
+
+        .debug-section {
+            margin-bottom: 20px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 15px;
+        }
+
+        .debug-section:last-child {
+            border-bottom: none;
+        }
+
+        h2 {
+            color: #ff0;
+            font-size: 16px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        h3 {
+            color: #0ff;
+            font-size: 14px;
+            margin: 10px 0 5px 0;
+        }
+
+        .stat-line {
+            font-size: 12px;
+            margin: 3px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .stat-label {
+            color: #888;
+        }
+
+        .stat-value {
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .pacman-stat {
+            color: #ff0;
+        }
+
+        .ghost-blinky {
+            color: #f00;
+        }
+
+        .ghost-pinky {
+            color: #fba;
+        }
+
+        .ghost-inky {
+            color: #0ff;
+        }
+
+        .ghost-clyde {
+            color: #fa0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #333;
+            margin: 5px 0;
+            border: 1px solid #555;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #0f0;
+            transition: width 0.3s;
+        }
+
+        .controls {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: #333;
+            color: #fff;
+            border: 2px solid #666;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #555;
+            border-color: #888;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        .action-log {
+            font-size: 11px;
+            max-height: 150px;
+            overflow-y: auto;
+            background: #0a0a0a;
+            padding: 8px;
+            border: 1px solid #333;
+            margin-top: 5px;
+        }
+
+        .log-entry {
+            margin: 2px 0;
+            opacity: 0.8;
+        }
+
+        .log-entry.recent {
+            opacity: 1;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas" width="560" height="620"></canvas>
+        <div class="controls">
+            <button onclick="resetGame()">Reset Game</button>
+            <button onclick="togglePause()">Pause/Resume</button>
+            <button onclick="speedUp()">Speed Up Training</button>
+            <button onclick="saveAI()">Save AI</button>
+            <button onclick="loadAI()">Load AI</button>
+            <label style="color:#fff; font-size:12px; margin-left:10px;">
+                Speed:
+                <input type="number" id="speed-input" min="1" max="100" value="1" style="width:50px;">
+            </label>
+        </div>
+    </div>
+
+    <div id="debug-panel">
+        <div class="debug-section">
+            <h2>🎮 Game Status</h2>
+            <div class="stat-line">
+                <span class="stat-label">Generation:</span>
+                <span class="stat-value" id="generation">1</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Score:</span>
+                <span class="stat-value pacman-stat" id="score">0</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Pellets Remaining:</span>
+                <span class="stat-value" id="pellets">0</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Time Alive:</span>
+                <span class="stat-value" id="time-alive">0</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="pellet-progress"></div>
+            </div>
+        </div>
+
+        <div class="debug-section">
+            <h2>🟡 Pac-Man AI</h2>
+            <div class="stat-line">
+                <span class="stat-label">Epsilon (Exploration):</span>
+                <span class="stat-value" id="pm-epsilon">0.10</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Learning Rate:</span>
+                <span class="stat-value" id="pm-lr">0.001</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Experience Buffer:</span>
+                <span class="stat-value" id="pm-exp">0</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Last Action:</span>
+                <span class="stat-value pacman-stat" id="pm-action">-</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Avg Q-Value:</span>
+                <span class="stat-value" id="pm-qvalue">0.00</span>
+            </div>
+            <h3>Recent Actions:</h3>
+            <div class="action-log" id="pm-log"></div>
+        </div>
+
+        <div class="debug-section">
+            <h2>👻 Ghosts AI</h2>
+
+            <h3 class="ghost-blinky">Blinky (Red)</h3>
+            <div class="stat-line">
+                <span class="stat-label">Last Action:</span>
+                <span class="stat-value ghost-blinky" id="blinky-action">-</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Epsilon:</span>
+                <span class="stat-value" id="blinky-epsilon">0.10</span>
+            </div>
+
+            <h3 class="ghost-pinky">Pinky (Pink)</h3>
+            <div class="stat-line">
+                <span class="stat-label">Last Action:</span>
+                <span class="stat-value ghost-pinky" id="pinky-action">-</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Epsilon:</span>
+                <span class="stat-value" id="pinky-epsilon">0.10</span>
+            </div>
+
+            <h3 class="ghost-inky">Inky (Cyan)</h3>
+            <div class="stat-line">
+                <span class="stat-label">Last Action:</span>
+                <span class="stat-value ghost-inky" id="inky-action">-</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Epsilon:</span>
+                <span class="stat-value" id="inky-epsilon">0.10</span>
+            </div>
+
+            <h3 class="ghost-clyde">Clyde (Orange)</h3>
+            <div class="stat-line">
+                <span class="stat-label">Last Action:</span>
+                <span class="stat-value ghost-clyde" id="clyde-action">-</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Epsilon:</span>
+                <span class="stat-value" id="clyde-epsilon">0.10</span>
+            </div>
+
+            <div class="stat-line" style="margin-top: 10px;">
+                <span class="stat-label">Shared Experience:</span>
+                <span class="stat-value" id="ghost-exp">0</span>
+            </div>
+        </div>
+
+        <div class="debug-section">
+            <h2>📊 Training Stats</h2>
+            <div class="stat-line">
+                <span class="stat-label">Best Score:</span>
+                <span class="stat-value" id="best-score">0</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Avg Score (Last 10):</span>
+                <span class="stat-value" id="avg-score">0.0</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Longest Survival:</span>
+                <span class="stat-value" id="longest-survival">0</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">Ghost Catches:</span>
+                <span class="stat-value" id="ghost-catches">0</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="amity-neural-network.js"></script>
+    <script>
+        // ============================================================================
+        // Pac-Man Game with Neural Network AI
+        // ============================================================================
+
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+
+        const TILE = 20;
+        const COLS = 28;
+        const ROWS = 31;
+
+        // Classic Pac-Man Level 1 Layout
+        const mazeLayout = [
+            "############################",
+            "#............##............#",
+            "#.####.#####.##.#####.####.#",
+            "#o####.#####.##.#####.####o#",
+            "#.####.#####.##.#####.####.#",
+            "#..........................#",
+            "#.####.##.########.##.####.#",
+            "#.####.##.########.##.####.#",
+            "#......##....##....##......#",
+            "######.##### ## #####.######",
+            "######.##### ## #####.######",
+            "######.##          ##.######",
+            "######.## ###--### ##.######",
+            "######.## #      # ##.######",
+            "      .   #      #   .      ",
+            "######.## #      # ##.######",
+            "######.## #--  --# ##.######",
+            "######.##          ##.######",
+            "######.## ######## ##.######",
+            "######.## ######## ##.######",
+            "#............##............#",
+            "#.####.#####.##.#####.####.#",
+            "#.####.#####.##.#####.####.#",
+            "#o..##.......  .......##..o#",
+            "###.##.##.########.##.##.###",
+            "###.##.##.########.##.##.###",
+            "#......##....##....##......#",
+            "#.##########.##.##########.#",
+            "#.##########.##.##########.#",
+            "#..........................#",
+            "############################"
+        ];
+
+        // Game state
+        let maze = [];
+        let pellets = [];
+        let powerPellets = [];
+        let pacman = {};
+        let ghosts = [];
+        let score = 0;
+        let generation = 1;
+        let timeAlive = 0;
+        let isPaused = false;
+        let gameSpeed = 1;
+        let totalPellets = 0;
+
+        // Neural networks
+        let pacmanBrain;
+        let ghostBrains = [];
+
+        // Training stats
+        let scoreHistory = [];
+        let bestScore = 0;
+        let longestSurvival = 0;
+        let ghostCatches = 0;
+        let pmActionLog = [];
+
+        // Directions
+        const DIRS = {
+            UP: { x: 0, y: -1, name: 'UP' },
+            DOWN: { x: 0, y: 1, name: 'DOWN' },
+            LEFT: { x: -1, y: 0, name: 'LEFT' },
+            RIGHT: { x: 1, y: 0, name: 'RIGHT' }
+        };
+        const DIR_ARRAY = [DIRS.UP, DIRS.DOWN, DIRS.LEFT, DIRS.RIGHT];
+
+        // ============================================================================
+        // Initialization
+        // ============================================================================
+
+        function initGame() {
+            // Parse maze
+            maze = mazeLayout.map(row => row.split(''));
+
+            // Find pellets and power pellets
+            pellets = [];
+            powerPellets = [];
+            totalPellets = 0;
+
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    if (maze[y][x] === '.') {
+                        pellets.push({ x, y });
+                        totalPellets++;
+                    } else if (maze[y][x] === 'o') {
+                        powerPellets.push({ x, y });
+                        totalPellets++;
+                    }
+                }
+            }
+
+            // Initialize Pac-Man
+            pacman = {
+                x: 14,
+                y: 23,
+                targetX: 14,
+                targetY: 23,
+                renderX: 14,
+                renderY: 23,
+                dir: DIRS.LEFT,
+                nextDir: DIRS.LEFT,
+                lastState: null,
+                lastAction: null,
+                lastQValues: [],
+                moveProgress: 1  // Start at 1 so it makes first decision immediately
+            };
+
+            // Initialize Ghosts - start them outside the box
+            ghosts = [
+                { x: 12, y: 11, targetX: 12, targetY: 11, renderX: 12, renderY: 11, dir: DIRS.LEFT, color: '#f00', name: 'Blinky', startX: 12, startY: 11, moveProgress: 1 },
+                { x: 14, y: 11, targetX: 14, targetY: 11, renderX: 14, renderY: 11, dir: DIRS.RIGHT, color: '#fba', name: 'Pinky', startX: 14, startY: 11, moveProgress: 1 },
+                { x: 13, y: 11, targetX: 13, targetY: 11, renderX: 13, renderY: 11, dir: DIRS.LEFT, color: '#0ff', name: 'Inky', startX: 13, startY: 11, moveProgress: 1 },
+                { x: 15, y: 11, targetX: 15, targetY: 11, renderX: 15, renderY: 11, dir: DIRS.RIGHT, color: '#fa0', name: 'Clyde', startX: 15, startY: 11, moveProgress: 1 }
+            ];
+
+            ghosts.forEach(g => {
+                g.lastState = null;
+                g.lastAction = null;
+            });
+
+            // Initialize neural networks if not exists
+            if (!pacmanBrain) {
+                // Pac-Man brain: sees nearby walls, ghosts, pellets
+                pacmanBrain = new NeuralNetwork(
+                    24, // Input: 4 dirs (wall) + 4 dirs (ghost dist) + 4 dirs (pellet) + 8 nearby tiles + 4 current dir
+                    [64, 32],
+                    4, // Output: 4 directions
+                    {
+                        learningRate: 0.001,
+                        activation: 'relu',
+                        outputActivation: 'linear',
+                        optimizer: 'adam',
+                        epsilon: 0.1,
+                        gamma: 0.95,
+                        bufferSize: 5000,
+                        batchSize: 32
+                    }
+                );
+            }
+
+            if (ghostBrains.length === 0) {
+                // Ghosts share knowledge but have individual networks
+                for (let i = 0; i < 4; i++) {
+                    ghostBrains.push(new NeuralNetwork(
+                        20, // Input: similar to pacman
+                        [32, 16],
+                        4, // Output: 4 directions
+                        {
+                            learningRate: 0.001,
+                            activation: 'relu',
+                            outputActivation: 'linear',
+                            optimizer: 'adam',
+                            epsilon: 0.1,
+                            gamma: 0.95,
+                            bufferSize: 3000,
+                            batchSize: 32
+                        }
+                    ));
+                }
+            }
+
+            score = 0;
+            timeAlive = 0;
+        }
+
+        // ============================================================================
+        // Helper Functions
+        // ============================================================================
+
+        function isWall(x, y) {
+            if (y < 0 || y >= ROWS || x < 0 || x >= COLS) return true;
+            return maze[y][x] === '#' || maze[y][x] === '-';
+        }
+
+        function canMove(x, y, dir) {
+            const newX = x + dir.x;
+            const newY = y + dir.y;
+            return !isWall(newX, newY);
+        }
+
+        function getValidMoves(x, y, currentDir) {
+            const valid = [];
+            const opposite = {
+                UP: DIRS.DOWN,
+                DOWN: DIRS.UP,
+                LEFT: DIRS.RIGHT,
+                RIGHT: DIRS.LEFT
+            };
+
+            for (let dir of DIR_ARRAY) {
+                // Can't go opposite direction (except when stuck)
+                if (dir === opposite[currentDir.name] && canMove(x, y, currentDir)) {
+                    continue;
+                }
+                if (canMove(x, y, dir)) {
+                    valid.push(dir);
+                }
+            }
+
+            // If no valid moves, allow opposite
+            if (valid.length === 0 && canMove(x, y, opposite[currentDir.name])) {
+                valid.push(opposite[currentDir.name]);
+            }
+
+            return valid;
+        }
+
+        function distance(x1, y1, x2, y2) {
+            return Math.abs(x1 - x2) + Math.abs(y1 - y2);
+        }
+
+        function findNearestPellet(x, y) {
+            let nearest = null;
+            let minDist = Infinity;
+
+            for (let p of pellets) {
+                const d = distance(x, y, p.x, p.y);
+                if (d < minDist) {
+                    minDist = d;
+                    nearest = p;
+                }
+            }
+
+            for (let p of powerPellets) {
+                const d = distance(x, y, p.x, p.y);
+                if (d < minDist) {
+                    minDist = d;
+                    nearest = p;
+                }
+            }
+
+            return nearest;
+        }
+
+        // ============================================================================
+        // State Generation for Neural Networks
+        // ============================================================================
+
+        function getPacmanState() {
+            const state = [];
+
+            // 1. Wall detection in 4 directions (0-3)
+            for (let dir of DIR_ARRAY) {
+                state.push(isWall(pacman.x + dir.x, pacman.y + dir.y) ? 1 : 0);
+            }
+
+            // 2. Nearest ghost distance in 4 directions (4-7)
+            for (let dir of DIR_ARRAY) {
+                let minDist = 100;
+                for (let ghost of ghosts) {
+                    const gx = ghost.x - pacman.x;
+                    const gy = ghost.y - pacman.y;
+
+                    if ((dir.name === 'UP' && gy < 0) ||
+                        (dir.name === 'DOWN' && gy > 0) ||
+                        (dir.name === 'LEFT' && gx < 0) ||
+                        (dir.name === 'RIGHT' && gx > 0)) {
+                        const d = Math.abs(gx) + Math.abs(gy);
+                        if (d < minDist) minDist = d;
+                    }
+                }
+                state.push(minDist / 20); // Normalize
+            }
+
+            // 3. Pellet direction (8-11)
+            const nearest = findNearestPellet(pacman.x, pacman.y);
+            if (nearest) {
+                state.push(nearest.x > pacman.x ? 1 : 0); // Right
+                state.push(nearest.x < pacman.x ? 1 : 0); // Left
+                state.push(nearest.y > pacman.y ? 1 : 0); // Down
+                state.push(nearest.y < pacman.y ? 1 : 0); // Up
+            } else {
+                state.push(0, 0, 0, 0);
+            }
+
+            // 4. Nearby tile scan (12-19)
+            const offsets = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
+            for (let [ox, oy] of offsets) {
+                state.push(isWall(pacman.x + ox, pacman.y + oy) ? 1 : 0);
+            }
+
+            // 5. Current direction encoding (20-23)
+            for (let dir of DIR_ARRAY) {
+                state.push(dir === pacman.dir ? 1 : 0);
+            }
+
+            return state;
+        }
+
+        function getGhostState(ghost) {
+            const state = [];
+
+            // 1. Wall detection (0-3)
+            for (let dir of DIR_ARRAY) {
+                state.push(isWall(ghost.x + dir.x, ghost.y + dir.y) ? 1 : 0);
+            }
+
+            // 2. Pacman direction (4-7)
+            const dx = pacman.x - ghost.x;
+            const dy = pacman.y - ghost.y;
+            const dist = Math.abs(dx) + Math.abs(dy);
+
+            state.push(dx > 0 ? Math.min(1, dx / 10) : 0); // Right
+            state.push(dx < 0 ? Math.min(1, -dx / 10) : 0); // Left
+            state.push(dy > 0 ? Math.min(1, dy / 10) : 0); // Down
+            state.push(dy < 0 ? Math.min(1, -dy / 10) : 0); // Up
+
+            // 3. Nearby tiles (8-15)
+            const offsets = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
+            for (let [ox, oy] of offsets) {
+                state.push(isWall(ghost.x + ox, ghost.y + oy) ? 1 : 0);
+            }
+
+            // 4. Current direction (16-19)
+            for (let dir of DIR_ARRAY) {
+                state.push(dir === ghost.dir ? 1 : 0);
+            }
+
+            return state;
+        }
+
+        // ============================================================================
+        // AI Decision Making
+        // ============================================================================
+
+        function decidePacmanMove() {
+            const state = getPacmanState();
+            const validMoves = getValidMoves(pacman.x, pacman.y, pacman.dir);
+
+            if (validMoves.length === 0) return pacman.dir;
+
+            // Get action from neural network
+            const actionIndex = pacmanBrain.selectAction(state, true);
+            const chosenDir = DIR_ARRAY[actionIndex];
+
+            // Store Q-values for debugging
+            pacman.lastQValues = pacmanBrain.predict(state);
+
+            // If chosen direction is valid, use it; otherwise pick from valid moves
+            let finalDir;
+            if (validMoves.includes(chosenDir)) {
+                finalDir = chosenDir;
+            } else {
+                finalDir = validMoves[Math.floor(Math.random() * validMoves.length)];
+            }
+
+            // Store experience from last step
+            if (pacman.lastState && pacman.lastAction !== null) {
+                const reward = calculatePacmanReward();
+                const done = false;
+                pacmanBrain.storeExperience(pacman.lastState, pacman.lastAction, reward, state, done);
+            }
+
+            pacman.lastState = state;
+            pacman.lastAction = DIR_ARRAY.indexOf(finalDir);
+
+            // Log action
+            logAction('pacman', finalDir.name);
+
+            return finalDir;
+        }
+
+        function decideGhostMove(ghost, index) {
+            const state = getGhostState(ghost);
+            const validMoves = getValidMoves(ghost.x, ghost.y, ghost.dir);
+
+            if (validMoves.length === 0) return ghost.dir;
+
+            const actionIndex = ghostBrains[index].selectAction(state, true);
+            const chosenDir = DIR_ARRAY[actionIndex];
+
+            let finalDir;
+            if (validMoves.includes(chosenDir)) {
+                finalDir = chosenDir;
+            } else {
+                finalDir = validMoves[Math.floor(Math.random() * validMoves.length)];
+            }
+
+            // Store experience
+            if (ghost.lastState && ghost.lastAction !== null) {
+                const reward = calculateGhostReward(ghost);
+                const done = false;
+                ghostBrains[index].storeExperience(ghost.lastState, ghost.lastAction, reward, state, done);
+            }
+
+            ghost.lastState = state;
+            ghost.lastAction = DIR_ARRAY.indexOf(finalDir);
+
+            return finalDir;
+        }
+
+        // ============================================================================
+        // Reward Functions
+        // ============================================================================
+
+        function calculatePacmanReward() {
+            let reward = 0;
+
+            // Time penalty to encourage speed
+            reward -= 0.01;
+
+            // Reward for collecting pellets (handled in update)
+            // Penalty for being near ghosts
+            for (let ghost of ghosts) {
+                const d = distance(pacman.x, pacman.y, ghost.x, ghost.y);
+                if (d <= 2) {
+                    reward -= 5 / (d + 0.1);
+                }
+            }
+
+            // Reward for moving toward pellets
+            const nearest = findNearestPellet(pacman.x, pacman.y);
+            if (nearest) {
+                const d = distance(pacman.x, pacman.y, nearest.x, nearest.y);
+                reward += 0.1 / (d + 1);
+            }
+
+            return reward;
+        }
+
+        function calculateGhostReward(ghost) {
+            let reward = 0;
+
+            const d = distance(ghost.x, ghost.y, pacman.x, pacman.y);
+
+            // Reward for being close to Pacman
+            reward += 1 / (d + 0.1);
+
+            // Big reward for catching Pacman (handled separately)
+
+            return reward;
+        }
+
+        // ============================================================================
+        // Game Update
+        // ============================================================================
+        
+        let gameOver = false;
+
+        function update() {
+            if (isPaused || gameOver) return;
+
+            // Store previous positions before moving (add these at the start of update)
+            const prevPacman = { x: pacman.x, y: pacman.y };
+            const prevGhosts = ghosts.map(g => ({ x: g.x, y: g.y }));
+
+            timeAlive++;
+
+            // Pac-Man movement
+            pacman.dir = decidePacmanMove();
+            if (canMove(pacman.x, pacman.y, pacman.dir)) {
+                pacman.x += pacman.dir.x;
+                pacman.y += pacman.dir.y;
+            }
+
+            // Check pellet collection
+            for (let i = pellets.length - 1; i >= 0; i--) {
+                if (pellets[i].x === pacman.x && pellets[i].y === pacman.y) {
+                    pellets.splice(i, 1);
+                    score += 10;
+
+                    // Reward for pellet
+                    if (pacman.lastState) {
+                        const state = getPacmanState();
+                        pacmanBrain.storeExperience(pacman.lastState, pacman.lastAction, 10, state, false);
+                    }
+                }
+            }
+
+            for (let i = powerPellets.length - 1; i >= 0; i--) {
+                if (powerPellets[i].x === pacman.x && powerPellets[i].y === pacman.y) {
+                    powerPellets.splice(i, 1);
+                    score += 50;
+
+                    if (pacman.lastState) {
+                        const state = getPacmanState();
+                        pacmanBrain.storeExperience(pacman.lastState, pacman.lastAction, 50, state, false);
+                    }
+                }
+            }
+
+            // Ghost movement
+            ghosts.forEach((ghost, i) => {
+                ghost.dir = decideGhostMove(ghost, i);
+                if (canMove(ghost.x, ghost.y, ghost.dir)) {
+                    ghost.x += ghost.dir.x;
+                    ghost.y += ghost.dir.y;
+                }
+            });
+
+            // Check collision
+            for (let i = 0; i < ghosts.length; i++) {
+                const ghost = ghosts[i];
+                if (ghost.x === pacman.x && ghost.y === pacman.y) {
+                    // Ghost caught Pacman!
+                    ghostCatches++;
+
+                    gameOver = true;
+
+                    // Negative reward for Pacman
+                    if (pacman.lastState) {
+                        const state = getPacmanState();
+                        pacmanBrain.storeExperience(pacman.lastState, pacman.lastAction, -500, state, true);
+                    }
+
+                    // Positive reward for ghost
+                    if (ghost.lastState) {
+                        const state = getGhostState(ghost);
+                        ghostBrains[i].storeExperience(ghost.lastState, ghost.lastAction, 100, state, true);
+                    }
+
+                    // Share experience with other ghosts (cooperative learning)
+                    for (let j = 0; j < ghosts.length; j++) {
+                        if (j !== i && ghosts[j].lastState) {
+                            const state = getGhostState(ghosts[j]);
+                            ghostBrains[j].storeExperience(ghosts[j].lastState, ghosts[j].lastAction, 50, state, false);
+                        }
+                    }
+
+                    endGame();
+                    return;
+                }
+
+                // Crossing: Pac-Man and ghost swapped positions
+                if (
+                    ghost.x === prevPacman.x && ghost.y === prevPacman.y &&
+                    pacman.x === prevGhosts[i].x && pacman.y === prevGhosts[i].y
+                ) {
+                    // Ghost caught Pacman!
+                    ghostCatches++;
+
+                    gameOver = true;
+
+                    // Negative reward for Pacman
+                    if (pacman.lastState) {
+                        const state = getPacmanState();
+                        pacmanBrain.storeExperience(pacman.lastState, pacman.lastAction, -500, state, true);
+                    }
+
+                    // Positive reward for ghost
+                    if (ghost.lastState) {
+                        const state = getGhostState(ghost);
+                        ghostBrains[i].storeExperience(ghost.lastState, ghost.lastAction, 100, state, true);
+                    }
+
+                    // Share experience with other ghosts (cooperative learning)
+                    for (let j = 0; j < ghosts.length; j++) {
+                        if (j !== i && ghosts[j].lastState) {
+                            const state = getGhostState(ghosts[j]);
+                            ghostBrains[j].storeExperience(ghosts[j].lastState, ghosts[j].lastAction, 50, state, false);
+                        }
+                    }
+
+                    endGame();
+                    return;
+                }
+            }
+
+            // Win condition
+            if (pellets.length === 0 && powerPellets.length === 0) {
+                // Victory!
+                if (pacman.lastState) {
+                    const state = getPacmanState();
+                    pacmanBrain.storeExperience(pacman.lastState, pacman.lastAction, 200, state, true);
+                }
+                endGame();
+                return;
+            }
+
+            // Train networks periodically
+            if (timeAlive % 2 === 0) {
+                pacmanBrain.trainRL();
+            }
+            if (timeAlive % 40 === 0) {
+                ghostBrains.forEach(brain => brain.trainRL());
+            }
+        }
+
+        // ============================================================================
+        // Game End
+        // ============================================================================
+
+        function endGame() {
+            scoreHistory.push(score);
+            if (scoreHistory.length > 10) scoreHistory.shift();
+
+            if (score > bestScore) bestScore = score;
+            if (timeAlive > longestSurvival) longestSurvival = timeAlive;
+
+            // Decay exploration
+            pacmanBrain.decayEpsilon(0.995, 0.01);
+            ghostBrains.forEach(brain => brain.decayEpsilon(0.995, 0.01));
+
+            generation++;
+
+            // Reset for next generation
+            gameOver = true;
+            setTimeout(() => {
+                gameOver = false;
+                initGame();
+            }, 500);
+        }
+
+        // ============================================================================
+        // Rendering
+        // ============================================================================
+
+        function draw() {
+            // Clear canvas
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw maze
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    if (maze[y][x] === '#' || maze[y][x] === '-') {
+                        ctx.fillStyle = '#2121ff';
+                        ctx.fillRect(x * TILE, y * TILE, TILE, TILE);
+                        ctx.strokeStyle = '#4141ff';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(x * TILE, y * TILE, TILE, TILE);
+                    }
+                }
+            }
+
+            // Draw pellets
+            ctx.fillStyle = '#ffb897';
+            for (let p of pellets) {
+                ctx.beginPath();
+                ctx.arc(p.x * TILE + TILE / 2, p.y * TILE + TILE / 2, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Draw power pellets
+            ctx.fillStyle = '#fff';
+            for (let p of powerPellets) {
+                ctx.beginPath();
+                ctx.arc(p.x * TILE + TILE / 2, p.y * TILE + TILE / 2, 6, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Draw ghosts
+            for (let ghost of ghosts) {
+                const gx = ghost.x * TILE + TILE / 2;
+                const gy = ghost.y * TILE + TILE / 2;
+
+                ctx.fillStyle = ghost.color;
+                ctx.beginPath();
+                ctx.arc(gx, gy, TILE / 2 - 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Eyes
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(gx - 5, gy - 3, 4, 6);
+                ctx.fillRect(gx + 1, gy - 3, 4, 6);
+                ctx.fillStyle = '#000';
+                ctx.fillRect(gx - 4, gy - 1, 2, 3);
+                ctx.fillRect(gx + 2, gy - 1, 2, 3);
+            }
+
+            // Draw Pac-Man
+            ctx.fillStyle = '#ff0';
+            ctx.beginPath();
+            const mouthAngle = 0.3;
+            const rotation = {
+                UP: -Math.PI / 2,
+                DOWN: Math.PI / 2,
+                LEFT: Math.PI,
+                RIGHT: 0
+            }[pacman.dir.name];
+
+            const px = pacman.x * TILE + TILE / 2;
+            const py = pacman.y * TILE + TILE / 2;
+
+            ctx.arc(
+                px,
+                py,
+                TILE / 2 - 2,
+                rotation + mouthAngle,
+                rotation + (Math.PI * 2) - mouthAngle
+            );
+            ctx.lineTo(px, py);
+            ctx.fill();
+
+            updateDebugPanel();
+        }
+
+        // ============================================================================
+        // Debug Panel
+        // ============================================================================
+
+        function updateDebugPanel() {
+            document.getElementById('generation').textContent = generation;
+            document.getElementById('score').textContent = score;
+            document.getElementById('pellets').textContent = pellets.length + powerPellets.length;
+            document.getElementById('time-alive').textContent = timeAlive;
+
+            const progress = ((totalPellets - pellets.length - powerPellets.length) / totalPellets) * 100;
+            document.getElementById('pellet-progress').style.width = progress + '%';
+
+            // Pac-Man stats
+            document.getElementById('pm-epsilon').textContent = pacmanBrain.epsilon.toFixed(3);
+            document.getElementById('pm-lr').textContent = pacmanBrain.learningRate.toFixed(4);
+            document.getElementById('pm-exp').textContent = pacmanBrain.getExperienceCount();
+            document.getElementById('pm-action').textContent = pacman.dir.name;
+
+            if (pacman.lastQValues.length > 0) {
+                const avgQ = pacman.lastQValues.reduce((a, b) => a + b, 0) / pacman.lastQValues.length;
+                document.getElementById('pm-qvalue').textContent = avgQ.toFixed(2);
+            }
+
+            // Ghost stats
+            const ghostNames = ['blinky', 'pinky', 'inky', 'clyde'];
+            ghosts.forEach((ghost, i) => {
+                document.getElementById(ghostNames[i] + '-action').textContent = ghost.dir.name;
+                document.getElementById(ghostNames[i] + '-epsilon').textContent = ghostBrains[i].epsilon.toFixed(3);
+            });
+
+            const totalGhostExp = ghostBrains.reduce((sum, brain) => sum + brain.getExperienceCount(), 0);
+            document.getElementById('ghost-exp').textContent = totalGhostExp;
+
+            // Training stats
+            document.getElementById('best-score').textContent = bestScore;
+            const avgScore = scoreHistory.length > 0
+                ? scoreHistory.reduce((a, b) => a + b, 0) / scoreHistory.length
+                : 0;
+            document.getElementById('avg-score').textContent = avgScore.toFixed(1);
+            document.getElementById('longest-survival').textContent = longestSurvival;
+            document.getElementById('ghost-catches').textContent = ghostCatches;
+        }
+
+        function logAction(entity, action) {
+            if (entity === 'pacman') {
+                pmActionLog.unshift(`${timeAlive}: ${action}`);
+                if (pmActionLog.length > 20) pmActionLog.pop();
+
+                const logEl = document.getElementById('pm-log');
+                logEl.innerHTML = pmActionLog.map((entry, i) =>
+                    `<div class="log-entry ${i === 0 ? 'recent' : ''}">${entry}</div>`
+                ).join('');
+            }
+        }
+
+        // ============================================================================
+        // Game Loop
+        // ============================================================================
+
+        let lastTime = 0;
+
+        function gameLoop(timestamp) {
+            if (!lastTime) lastTime = timestamp;
+            const speedInput = document.getElementById('speed-input');
+            let speed = 1;
+            if (speedInput) {
+                speed = Math.max(1, parseInt(speedInput.value) || 1);
+            }
+
+            // Set frame interval: slower for speed 1, fast for higher speeds
+            const frameInterval = speed === 1 ? 64 : 16; // 100ms (~10 FPS) for speed 1
+
+            const delta = timestamp - lastTime;
+            if (delta >= frameInterval) {
+                for (let i = 0; i < speed; i++) {
+                    update();
+                }
+                draw();
+                lastTime = timestamp;
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // ============================================================================
+        // Controls
+        // ============================================================================
+
+        function resetGame() {
+            generation = 1;
+            scoreHistory = [];
+            bestScore = 0;
+            longestSurvival = 0;
+            ghostCatches = 0;
+
+            // Reset networks
+            pacmanBrain = new NeuralNetwork(
+                24,
+                [64, 32],
+                4,
+                {
+                    learningRate: 0.001,
+                    activation: 'relu',
+                    outputActivation: 'linear',
+                    optimizer: 'adam',
+                    epsilon: 0.1,
+                    gamma: 0.95,
+                    bufferSize: 5000,
+                    batchSize: 32
+                }
+            );
+
+            ghostBrains = [];
+            for (let i = 0; i < 4; i++) {
+                ghostBrains.push(new NeuralNetwork(
+                    20,
+                    [32, 16],
+                    4,
+                    {
+                        learningRate: 0.001,
+                        activation: 'relu',
+                        outputActivation: 'linear',
+                        optimizer: 'adam',
+                        epsilon: 0.1,
+                        gamma: 0.95,
+                        bufferSize: 3000,
+                        batchSize: 32
+                    }
+                ));
+            }
+
+            initGame();
+        }
+
+        function togglePause() {
+            isPaused = !isPaused;
+        }
+
+        function speedUp() {
+            gameSpeed = gameSpeed === 1 ? 3 : gameSpeed === 3 ? 5 : 1;
+            console.log(`Training speed: ${gameSpeed}x`);
+        }
+
+        function saveAI() {
+            const saveData = {
+                pacmanBrain: pacmanBrain.save(),
+                ghostBrains: ghostBrains.map(brain => brain.save()),
+                generation: generation,
+                bestScore: bestScore,
+                longestSurvival: longestSurvival,
+                ghostCatches: ghostCatches,
+                scoreHistory: scoreHistory
+            };
+
+            const dataStr = JSON.stringify(saveData);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `pacman-ai-gen${generation}.json`;
+            link.click();
+
+            URL.revokeObjectURL(url);
+            console.log('AI state saved!');
+        }
+
+        function loadAI() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+
+                reader.onload = (event) => {
+                    try {
+                        const saveData = JSON.parse(event.target.result);
+
+                        // Load Pac-Man brain
+                        pacmanBrain.load(saveData.pacmanBrain);
+
+                        // Load ghost brains
+                        saveData.ghostBrains.forEach((brainData, i) => {
+                            ghostBrains[i].load(brainData);
+                        });
+
+                        // Load stats
+                        generation = saveData.generation || generation;
+                        bestScore = saveData.bestScore || bestScore;
+                        longestSurvival = saveData.longestSurvival || longestSurvival;
+                        ghostCatches = saveData.ghostCatches || ghostCatches;
+                        scoreHistory = saveData.scoreHistory || scoreHistory;
+
+                        console.log(`AI state loaded! Generation ${generation}`);
+                        alert(`AI loaded successfully!\nGeneration: ${generation}\nBest Score: ${bestScore}`);
+
+                    } catch (error) {
+                        console.error('Error loading AI:', error);
+                        alert('Error loading AI file. Please check the file format.');
+                    }
+                };
+
+                reader.readAsText(file);
+            };
+
+            input.click();
+        }
+
+        // ============================================================================
+        // Start Game
+        // ============================================================================
+
+        initGame();
+        requestAnimationFrame(gameLoop);
+
+        console.log('Neural Pac-Man initialized!');
+        console.log('- Pac-Man learns to collect pellets and avoid ghosts');
+        console.log('- Ghosts learn to catch Pac-Man cooperatively');
+        console.log('- Watch the debug panel to see AI training progress');
+    </script>
+</body>
+
+</html>
