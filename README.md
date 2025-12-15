@@ -4,7 +4,6 @@
 	<p><b>Universal JavaScript Neural Network & AI Library</b></p>
 	<p>
 		<img src="https://img.shields.io/badge/AI-JavaScript-blue" alt="AI JS">
-		<img src="https://img.shields.io/badge/GPU-Accelerated-green" alt="GPU">
 		<img src="https://img.shields.io/badge/License-MIT-brightgreen" alt="MIT">
 	</p>
 </div>
