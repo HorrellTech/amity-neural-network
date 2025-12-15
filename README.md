@@ -11,6 +11,8 @@
 
 ---
 
+https://horrelltech.github.io/amity-neural-network/
+
 ## Overview
 
 **Amity Neural Network** is a powerful, flexible, and easy-to-use JavaScript library for building, training, and deploying neural networks and AI models in the browser or Node.js. It supports a wide range of AI paradigms, including deep learning, reinforcement learning, NLP, computer vision, audio processing, GANs, transfer learning, and more. GPU acceleration (WebGL/WebGPU) and Web Workers are supported for high performance.
